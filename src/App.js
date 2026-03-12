@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 
 // ─── BRAND SYSTEM ─────────────────────────────────────────────────────────────
 
@@ -10,10 +10,10 @@ const B = {
   border:  "rgba(255,255,255,0.07)",
   borderHover: "rgba(255,255,255,0.15)",
 
-  // Text
+  // Text – adjusted for better contrast (WCAG AA)
   textPrimary:   "#f0eeff",
-  textSecondary: "rgba(240,238,255,0.55)",
-  textMuted:     "rgba(240,238,255,0.28)",
+  textSecondary: "rgba(240,238,255,0.72)", // increased from 0.55
+  textMuted:     "rgba(240,238,255,0.45)", // increased from 0.28
 
   // Brand accent
   lavender: "#9b87f5",
@@ -23,7 +23,7 @@ const B = {
   serif: "'Playfair Display', Georgia, serif",
   sans:  "'Inter', 'Outfit', system-ui, sans-serif",
 
-  // Radii
+  // Radii – unified
   r: { sm: 10, md: 14, lg: 20, xl: 24, pill: 999 },
 
   // Shadows
@@ -38,7 +38,7 @@ const B = {
   txSlow: "all 0.3s ease",
 };
 
-// Phase definitions — single source of truth
+// Phase definitions – unchanged
 const PHASES = {
   menstruation: {
     label: "Menstruation", short: "Period", key: "menstruation",
@@ -79,7 +79,7 @@ const AVATARS = ["🌸","💜","🌙","🦋","🌺","✨","💎","🌹","🔮","
 const CARD_ACCENTS = ["#9b87f5","#fbbf24","#f472b6","#34d399","#60a5fa","#fb923c"];
 
 // ─── GLOBAL STYLES (injected once) ───────────────────────────────────────────
-
+// Added prefers-reduced-motion support
 const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -96,6 +96,15 @@ const GLOBAL_CSS = `
   @keyframes shimmer   { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   @keyframes floatBlob { 0%,100% { transform: translate(0,0) rotate(0deg); } 33% { transform: translate(10px,-15px) rotate(3deg); } 66% { transform: translate(-8px,8px) rotate(-2deg); } }
 
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   .fade-in  { animation: fadeIn  0.3s ease both; }
   .fade-in-1 { animation: fadeIn 0.3s 0.05s ease both; }
   .fade-in-2 { animation: fadeIn 0.3s 0.10s ease both; }
@@ -107,7 +116,7 @@ const GLOBAL_CSS = `
 
   .btn-hover { transition: all 0.15s ease; }
   .btn-hover:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
-  .btn-hover:active:not(:disabled) { transform: translateY(0); filter: brightness(0.95); }
+  .btn-hover:active:not(:disabled) { transform: scale(0.98); } /* added active state */
 
   .tab-btn { transition: all 0.18s ease; }
   .sym-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
@@ -163,11 +172,13 @@ function Card({ children, style = {}, className = "", onClick }) {
     <div
       className={`card-hover ${className}`}
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       style={{
         background: B.card,
         border: `1px solid ${B.border}`,
         borderRadius: B.r.xl,
-        padding: 20,
+        padding: 22, // increased from 20 for better spacing
         boxShadow: B.shadow.card,
         cursor: onClick ? "pointer" : "default",
         ...style,
@@ -184,7 +195,8 @@ function Btn({ children, onClick, variant = "primary", color, disabled, style = 
     cursor: disabled ? "not-allowed" : "pointer", fontFamily: B.sans,
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     transition: B.tx, opacity: disabled ? 0.45 : 1,
-    padding: "10px 20px", fontSize: 13,
+    padding: "12px 24px", // increased from 10px 20px for better touch target
+    fontSize: 14, // increased from 13
   };
   const c = color || B.lavender;
   const variants = {
@@ -197,6 +209,7 @@ function Btn({ children, onClick, variant = "primary", color, disabled, style = 
     <button
       onClick={disabled ? undefined : onClick}
       className={`btn-hover ${className}`}
+      disabled={disabled}
       style={{ ...base, ...variants[variant], ...style }}
     >
       {children}
@@ -206,20 +219,20 @@ function Btn({ children, onClick, variant = "primary", color, disabled, style = 
 
 function Label({ children, style = {} }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: B.textMuted, textTransform: "uppercase", marginBottom: 8, ...style }}>
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.8, color: B.textMuted, textTransform: "uppercase", marginBottom: 8, ...style }}>
       {children}
     </div>
   );
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: B.border, margin: "16px 0" }} />;
+  return <div style={{ height: 1, background: B.border, margin: "20px 0" }} />; // increased margin
 }
 
 function Spinner({ color = B.lavender }) {
   return (
     <div style={{
-      width: 14, height: 14, borderRadius: "50%",
+      width: 16, height: 16, borderRadius: "50%",
       border: `2px solid ${color}40`,
       borderTopColor: color,
       animation: "spin 0.7s linear infinite",
@@ -249,7 +262,6 @@ function BgDecor({ phase }) {
         borderRadius: "50%", background: c + "08",
         animation: "floatBlob 22s ease-in-out infinite 5s",
       }} />
-      {/* Subtle grid */}
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: `radial-gradient(circle, rgba(155,135,245,0.04) 1px, transparent 1px)`,
@@ -259,9 +271,8 @@ function BgDecor({ phase }) {
   );
 }
 
-// ─── CYCLE RING ───────────────────────────────────────────────────────────────
-
-function CycleRing({ day, cycleLength, size = 200, glowing = false }) {
+// ─── CYCLE RING (memoized) ────────────────────────────────────────────────────
+const CycleRing = memo(function CycleRing({ day, cycleLength, size = 200, glowing = false }) {
   const cx = size / 2, cy = size / 2;
   const r = size * 0.35, strokeW = size * 0.09;
   const circ = 2 * Math.PI * r;
@@ -286,7 +297,8 @@ function CycleRing({ day, cycleLength, size = 200, glowing = false }) {
   const curColor = PHASES[phase].color;
 
   return (
-    <svg width={size} height={size} style={{ overflow: "visible" }}>
+    <svg width={size} height={size} style={{ overflow: "visible" }} aria-label="Cycle phase ring">
+      <title>Cycle day {day} of {cycleLength} – {PHASES[phase].label}</title>
       <defs>
         <filter id="glow">
           <feGaussianBlur stdDeviation="3" result="blur" />
@@ -311,16 +323,16 @@ function CycleRing({ day, cycleLength, size = 200, glowing = false }) {
       {/* Day dot */}
       <circle cx={dx} cy={dy} r={size * 0.06} fill="white" />
       <circle cx={dx} cy={dy} r={size * 0.035} fill={curColor} />
-      {/* Center */}
-      <text x={cx} y={cy - 10} textAnchor="middle" fill={B.textPrimary}
+      {/* Center – adjusted text positions for better centering */}
+      <text x={cx} y={cy - 12} textAnchor="middle" fill={B.textPrimary}
         fontSize={size * 0.15} fontWeight={800} fontFamily={B.serif}>{day}</text>
-      <text x={cx} y={cy + 8} textAnchor="middle" fill={B.textMuted}
-        fontSize={size * 0.065} fontFamily={B.sans}>of {cycleLength}</text>
-      <text x={cx} y={cy + 26} textAnchor="middle" fill={curColor}
+      <text x={cx} y={cy + 10} textAnchor="middle" fill={B.textMuted}
+        fontSize={size * 0.07} fontFamily={B.sans}>of {cycleLength}</text>
+      <text x={cx} y={cy + 30} textAnchor="middle" fill={curColor}
         fontSize={size * 0.072} fontWeight={700} fontFamily={B.sans}>{PHASES[phase].short}</text>
     </svg>
   );
-}
+});
 
 // ─── MONTH CALENDAR ───────────────────────────────────────────────────────────
 
@@ -347,14 +359,12 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
 
   return (
     <div>
-      {/* Day headers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 8 }}>
         {["S","M","T","W","T","F","S"].map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 600, color: B.textMuted, padding: "3px 0" }}>{d}</div>
+          <div key={i} style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: B.textMuted, padding: "4px 0" }}>{d}</div>
         ))}
       </div>
-      {/* Days grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
         {Array(firstDay).fill(null).map((_, i) => <div key={"e" + i} />)}
         {Array(daysInMonth).fill(null).map((_, i) => {
           const d = i + 1;
@@ -362,38 +372,39 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
           const col = PHASES[ph].color;
           const isToday = isThisMonth && d === today.getDate();
           const hasI = isIntimacy(d);
+          // Add semi-transparent overlay for better text contrast
+          const bgColor = isToday ? col : col + "1a";
           return (
             <div key={d} style={{
               aspectRatio: "1", borderRadius: 8, position: "relative",
-              background: isToday ? col : col + "1a",
+              background: bgColor,
               border: `1px solid ${isToday ? col : col + "35"}`,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: isToday ? `0 0 12px ${col}50` : "none",
             }}>
-              <span style={{ fontSize: 10, color: isToday ? "#111" : B.textSecondary, fontWeight: isToday ? 700 : 400 }}>{d}</span>
-              {hasI && <span style={{ position: "absolute", top: 1, right: 1, fontSize: 6, lineHeight: 1 }}>💕</span>}
+              <span style={{ fontSize: 12, color: isToday ? "#111" : B.textSecondary, fontWeight: isToday ? 700 : 400 }}>{d}</span>
+              {hasI && <span style={{ position: "absolute", top: 2, right: 2, fontSize: 8, lineHeight: 1 }}>💕</span>}
             </div>
           );
         })}
       </div>
-      {/* Legend */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${B.border}` }}>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16, paddingTop: 16, borderTop: `1px solid ${B.border}` }}>
         {Object.values(PHASES).map(v => (
-          <div key={v.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: v.color }} />
-            <span style={{ fontSize: 10, color: B.textMuted }}>{v.short}</span>
+          <div key={v.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: v.color }} />
+            <span style={{ fontSize: 11, color: B.textMuted }}>{v.short}</span>
           </div>
         ))}
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ fontSize: 10 }}>💕</span>
-          <span style={{ fontSize: 10, color: B.textMuted }}>Intimacy</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 11 }}>💕</span>
+          <span style={{ fontSize: 11, color: B.textMuted }}>Intimacy</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── AI INSIGHT ───────────────────────────────────────────────────────────────
+// ─── AI INSIGHT (improved) ────────────────────────────────────────────────────
 
 function AIInsight({ profile }) {
   const [text, setText]       = useState("");
@@ -424,7 +435,7 @@ function AIInsight({ profile }) {
       setText(d.content?.[0]?.text || "Could not generate insight.");
     } catch {
       setError(true);
-      setText("AI unavailable. Check your connection and try again.");
+      setText("AI unavailable. Check your connection.");
     }
     setLoading(false);
   }, [profile, day, phase]);
@@ -433,26 +444,33 @@ function AIInsight({ profile }) {
     <div style={{
       background: `linear-gradient(135deg, ${PD.color}0d, ${B.card})`,
       border: `1px solid ${PD.color}30`,
-      borderRadius: B.r.xl, padding: 20, marginTop: 4,
+      borderRadius: B.r.xl, padding: 22, marginTop: 8,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: PD.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>✦</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: PD.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✦</div>
           <Label style={{ marginBottom: 0, color: PD.color }}>AI Insight</Label>
         </div>
         <Btn
           onClick={generate}
           disabled={loading}
           color={PD.color}
-          style={{ padding: "6px 16px", fontSize: 12 }}
+          style={{ padding: "8px 20px", fontSize: 13 }}
         >
           {loading ? <><Spinner color="#0d0d1a" /> Thinking…</> : "Generate"}
         </Btn>
       </div>
       {text ? (
-        <p style={{ fontSize: 13, color: error ? "#f472b6" : B.textSecondary, lineHeight: 1.75, margin: 0 }}>{text}</p>
+        <div>
+          <p style={{ fontSize: 14, color: error ? "#f472b6" : B.textSecondary, lineHeight: 1.75, margin: "0 0 12px" }}>{text}</p>
+          {error && (
+            <Btn variant="ghost" onClick={generate} style={{ padding: "6px 12px", fontSize: 12 }}>
+              Retry
+            </Btn>
+          )}
+        </div>
       ) : (
-        <p style={{ fontSize: 12, color: B.textMuted, margin: 0, fontStyle: "italic", lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: B.textMuted, margin: 0, fontStyle: "italic", lineHeight: 1.6 }}>
           Generate a personalized AI insight based on her current cycle phase, symptoms, and history.
         </p>
       )}
@@ -506,7 +524,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const inputStyle = {
     width: "100%", background: "rgba(255,255,255,0.04)",
     border: `1px solid ${B.border}`, borderRadius: B.r.md,
-    padding: "12px 16px", color: B.textPrimary, fontSize: 14,
+    padding: "14px 18px", color: B.textPrimary, fontSize: 15,
     outline: "none", display: "block",
   };
 
@@ -537,10 +555,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
         {/* ── HERO CARD ── */}
         <div className="fade-in" style={{ position: "relative", marginBottom: 16 }}>
-          {/* Floating accent blob */}
           <div style={{ position: "absolute", top: -20, right: -20, width: 140, height: 140, borderRadius: "60% 40% 55% 45%", background: PD.color + "18", pointerEvents: "none", zIndex: -1 }} />
           <Card style={{ border: `1px solid ${PD.color}30`, background: `linear-gradient(135deg, ${PD.bg}, ${B.card})`, padding: 22, marginBottom: 0 }}>
-            {/* Name row */}
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
               <div style={{
                 width: 68, height: 68, borderRadius: 20, flexShrink: 0,
@@ -560,19 +576,18 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               <CycleRing day={day} cycleLength={profile.cycleLength} size={76} />
             </div>
 
-            {/* Risk banner */}
             <div style={{
               background: tips.safe ? "rgba(52,211,153,0.08)" : "rgba(244,114,182,0.08)",
               border: `1px solid ${tips.safe ? "#34d39940" : "#f472b640"}`,
-              borderRadius: B.r.lg, padding: "12px 16px",
-              display: "flex", gap: 12, alignItems: "flex-start",
+              borderRadius: B.r.lg, padding: "14px 18px",
+              display: "flex", gap: 14, alignItems: "flex-start",
             }}>
-              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.4 }}>{tips.safe ? "✅" : "⚠️"}</span>
+              <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.4 }}>{tips.safe ? "✅" : "⚠️"}</span>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: tips.safe ? "#34d399" : "#f472b6", marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.8, color: tips.safe ? "#34d399" : "#f472b6", marginBottom: 4 }}>
                   {tips.risk}
                 </div>
-                <div style={{ fontSize: 12, color: B.textSecondary, lineHeight: 1.65 }}>{tips.note}</div>
+                <div style={{ fontSize: 13, color: B.textSecondary, lineHeight: 1.65 }}>{tips.note}</div>
               </div>
             </div>
           </Card>
@@ -586,10 +601,10 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               onClick={() => setTab(t.id)}
               className="tab-btn"
               style={{
-                flex: 1, border: "none", borderRadius: B.r.pill, padding: "9px 4px",
+                flex: 1, border: "none", borderRadius: B.r.pill, padding: "10px 4px",
                 background: tab === t.id ? PD.color : "transparent",
                 color: tab === t.id ? "#111" : B.textMuted,
-                fontSize: 12, fontWeight: tab === t.id ? 700 : 500,
+                fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
                 cursor: "pointer", fontFamily: B.sans,
                 boxShadow: tab === t.id ? `0 2px 10px ${PD.color}40` : "none",
               }}
@@ -602,13 +617,11 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         {/* ═════════════ OVERVIEW ═════════════ */}
         {tab === "overview" && (
           <div className="fade-in">
-            {/* Cycle ring */}
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 24, animation: "pulseRing 4s ease-in-out infinite" }}>
               <CycleRing day={day} cycleLength={profile.cycleLength} size={220} glowing />
             </div>
 
-            {/* 4 stat cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               {[
                 { label: "Period in",  val: dToP <= 0 ? "Today" : `${dToP}d`,  sub: fmtDate(nextP),     color: "#f472b6", bg: PHASES.menstruation.bg },
                 { label: "Ovulation",  val: dToO <= 0 ? "Now!" : dToO === 1 ? "Tmrw" : `${dToO}d`, sub: fmtDate(nextO), color: "#34d399", bg: PHASES.ovulation.bg },
@@ -617,73 +630,70 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               ].map((s, i) => (
                 <div key={s.label} className={`fade-in-${i + 1}`} style={{
                   background: s.bg, border: `1px solid ${s.color}28`,
-                  borderRadius: B.r.xl, padding: "16px 18px",
+                  borderRadius: B.r.xl, padding: "18px 18px",
                 }}>
-                  <Label style={{ color: s.color + "99" }}>{s.label}</Label>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: B.serif, marginBottom: 3, lineHeight: 1 }}>{s.val}</div>
-                  <div style={{ fontSize: 11, color: B.textMuted }}>{s.sub}</div>
+                  <Label style={{ color: s.color + "99", marginBottom: 6 }}>{s.label}</Label>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: B.serif, marginBottom: 4, lineHeight: 1 }}>{s.val}</div>
+                  <div style={{ fontSize: 12, color: B.textMuted }}>{s.sub}</div>
                 </div>
               ))}
             </div>
 
-            {/* Libido bar */}
-            <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: B.r.lg, padding: "12px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: B.r.lg, padding: "16px 20px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Label style={{ marginBottom: 0 }}>Libido</Label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {["Low","Medium","Rising","Peak","Falling"].map(l => (
-                  <div key={l} style={{ width: 28, height: 6, borderRadius: 3, background: tips.libido === l ? PD.color : B.border, transition: B.tx }} />
+                  <div key={l} style={{ width: 30, height: 8, borderRadius: 4, background: tips.libido === l ? PD.color : B.border, transition: B.tx }} />
                 ))}
-                <span style={{ fontSize: 12, fontWeight: 600, color: PD.color, marginLeft: 4 }}>{tips.libido}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: PD.color, marginLeft: 6 }}>{tips.libido}</span>
               </div>
             </div>
 
-            {/* Symptoms */}
-            <Card style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <Label style={{ marginBottom: 0 }}>Symptoms</Label>
-                <Btn variant="ghost" onClick={() => setEditSym(!editSym)} style={{ padding: "5px 14px", fontSize: 11 }}>
+                <Btn variant="ghost" onClick={() => setEditSym(!editSym)} style={{ padding: "6px 16px", fontSize: 12 }}>
                   {editSym ? "✓ Done" : "Edit"}
                 </Btn>
               </div>
               {editSym ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {SYMPTOMS.map(s => {
                     const on = (profile.symptoms || []).includes(s);
                     return (
                       <button key={s} onClick={() => toggleSym(s)} className="sym-btn" style={{
                         background: on ? PD.color + "25" : "rgba(255,255,255,0.04)",
                         border: `1px solid ${on ? PD.color + "60" : B.border}`,
-                        borderRadius: B.r.pill, padding: "6px 13px",
-                        color: on ? PD.color : B.textMuted, fontSize: 12, cursor: "pointer",
+                        borderRadius: B.r.pill, padding: "8px 16px",
+                        color: on ? PD.color : B.textMuted, fontSize: 13, cursor: "pointer",
                       }}>{s}</button>
                     );
                   })}
                 </div>
               ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(profile.symptoms || []).length === 0
-                    ? <span style={{ fontSize: 12, color: B.textMuted, fontStyle: "italic" }}>None logged — tap Edit to add symptoms.</span>
+                    ? <span style={{ fontSize: 13, color: B.textMuted, fontStyle: "italic" }}>None logged — tap Edit to add symptoms.</span>
                     : (profile.symptoms || []).map(s => (
-                      <span key={s} style={{ background: PD.color + "1a", border: `1px solid ${PD.color}35`, borderRadius: B.r.pill, padding: "5px 13px", fontSize: 12, color: PD.color }}>{s}</span>
+                      <span key={s} style={{ background: PD.color + "1a", border: `1px solid ${PD.color}35`, borderRadius: B.r.pill, padding: "6px 16px", fontSize: 13, color: PD.color }}>{s}</span>
                     ))
                   }
                 </div>
               )}
             </Card>
 
-            {/* Quick actions */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <Btn
                 color={periodFlash ? "#34d399" : "#f472b6"}
                 onClick={markPeriodToday}
-                style={{ width: "100%", padding: "15px 12px", fontSize: 13, justifyContent: "center", borderRadius: B.r.lg }}
+                style={{ width: "100%", padding: "16px 12px", fontSize: 14, justifyContent: "center", borderRadius: B.r.lg }}
               >
                 {periodFlash ? "✓ Saved!" : "🔴 Period Started"}
               </Btn>
               <Btn
                 color={B.lavender}
                 onClick={() => setShowLogModal(true)}
-                style={{ width: "100%", padding: "15px 12px", fontSize: 13, justifyContent: "center", borderRadius: B.r.lg }}
+                style={{ width: "100%", padding: "16px 12px", fontSize: 14, justifyContent: "center", borderRadius: B.r.lg }}
               >
                 💕 Log Intimacy
               </Btn>
@@ -696,25 +706,33 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         {/* ═════════════ CALENDAR ═════════════ */}
         {tab === "calendar" && (
           <div className="fade-in">
-            {/* Month nav */}
-            <Card style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                <button onClick={() => setMonthOffset(m => m - 1)} style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }} className="btn-hover">‹</button>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <button
+                  onClick={() => setMonthOffset(m => m - 1)}
+                  aria-label="Previous month"
+                  style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }}
+                  className="btn-hover"
+                >‹</button>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary }}>{calLabel}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary }}>{calLabel}</div>
                   {monthOffset !== 0 && (
-                    <button onClick={() => setMonthOffset(0)} style={{ background: "none", border: "none", color: PD.color, fontSize: 11, cursor: "pointer", marginTop: 3, fontFamily: B.sans, textDecoration: "underline" }}>
+                    <button onClick={() => setMonthOffset(0)} style={{ background: "none", border: "none", color: PD.color, fontSize: 12, cursor: "pointer", marginTop: 4, fontFamily: B.sans, textDecoration: "underline" }}>
                       Today
                     </button>
                   )}
                 </div>
-                <button onClick={() => setMonthOffset(m => m + 1)} style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }} className="btn-hover">›</button>
+                <button
+                  onClick={() => setMonthOffset(m => m + 1)}
+                  aria-label="Next month"
+                  style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }}
+                  className="btn-hover"
+                >›</button>
               </div>
               <MonthCalendar profile={profile} monthOffset={monthOffset} />
             </Card>
 
-            {/* Upcoming events */}
-            <Card style={{ marginBottom: 14 }}>
+            <Card style={{ marginBottom: 16 }}>
               <Label>Upcoming Events</Label>
               {[
                 { label: "Next Period",  date: nextP, color: "#f472b6", emoji: "🔴" },
@@ -722,34 +740,33 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               ].map((ev, i) => (
                 <div key={ev.label}>
                   {i > 0 && <Divider />}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: ev.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{ev.emoji}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: ev.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{ev.emoji}</div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: B.textPrimary }}>{ev.label}</div>
-                        <div style={{ fontSize: 11, color: B.textMuted }}>{fmtDate(ev.date)}</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: B.textPrimary }}>{ev.label}</div>
+                        <div style={{ fontSize: 12, color: B.textMuted }}>{fmtDate(ev.date)}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: ev.color, fontFamily: B.serif }}>{daysUntil(ev.date)}d</div>
-                      <div style={{ fontSize: 10, color: B.textMuted }}>away</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: ev.color, fontFamily: B.serif }}>{daysUntil(ev.date)}d</div>
+                      <div style={{ fontSize: 11, color: B.textMuted }}>away</div>
                     </div>
                   </div>
                 </div>
               ))}
             </Card>
 
-            {/* Intimacy log */}
             <Card>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div>
-                  <Label style={{ marginBottom: 2 }}>Intimacy Log</Label>
-                  <div style={{ fontSize: 11, color: B.textMuted }}>{(profile.intimacyLog || []).length} session{(profile.intimacyLog || []).length !== 1 ? "s" : ""} recorded</div>
+                  <Label style={{ marginBottom: 4 }}>Intimacy Log</Label>
+                  <div style={{ fontSize: 12, color: B.textMuted }}>{(profile.intimacyLog || []).length} session{(profile.intimacyLog || []).length !== 1 ? "s" : ""} recorded</div>
                 </div>
-                <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ padding: "7px 16px", fontSize: 12 }}>+ Add</Btn>
+                <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ padding: "8px 18px", fontSize: 13 }}>+ Add</Btn>
               </div>
               {(profile.intimacyLog || []).length === 0
-                ? <p style={{ fontSize: 12, color: B.textMuted, fontStyle: "italic", margin: 0 }}>No sessions logged yet.</p>
+                ? <p style={{ fontSize: 13, color: B.textMuted, fontStyle: "italic", margin: 0 }}>No sessions logged yet.</p>
                 : <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     {[...(profile.intimacyLog || [])].reverse().map(d => {
                       const diff = Math.floor((new Date(d) - new Date(profile.lastPeriodStart)) / 86400000);
@@ -757,17 +774,22 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                       const ph = getPhaseFromDay(cd);
                       const col = PHASES[ph].color;
                       return (
-                        <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${B.border}` }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 16 }}>💕</span>
+                        <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${B.border}` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 18 }}>💕</span>
                             <div>
-                              <div style={{ fontSize: 13, color: B.textPrimary, fontWeight: 500 }}>{fmtDate(d)}</div>
-                              <span style={{ background: col + "1a", border: `1px solid ${col}35`, borderRadius: B.r.pill, padding: "2px 9px", fontSize: 10, color: col }}>
+                              <div style={{ fontSize: 14, color: B.textPrimary, fontWeight: 500 }}>{fmtDate(d)}</div>
+                              <span style={{ background: col + "1a", border: `1px solid ${col}35`, borderRadius: B.r.pill, padding: "4px 10px", fontSize: 11, color: col }}>
                                 {PHASES[ph].label} · Day {cd}
                               </span>
                             </div>
                           </div>
-                          <button onClick={() => removeIntimacy(d)} style={{ background: "none", border: "none", color: B.textMuted, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "4px 8px", borderRadius: 6, transition: B.tx }} className="btn-hover">×</button>
+                          <button
+                            onClick={() => removeIntimacy(d)}
+                            aria-label="Delete intimacy log"
+                            style={{ background: "none", border: "none", color: B.textMuted, cursor: "pointer", fontSize: 22, lineHeight: 1, padding: "8px 12px", borderRadius: 6, transition: B.tx }}
+                            className="btn-hover"
+                          >×</button>
                         </div>
                       );
                     })}
@@ -780,7 +802,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         {/* ═════════════ LOG ═════════════ */}
         {tab === "log" && (
           <div className="fade-in">
-            <Card style={{ marginBottom: 14 }}>
+            <Card style={{ marginBottom: 16 }}>
               <Label>Update Cycle Data</Label>
               <Divider />
               {[
@@ -788,7 +810,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 { label: "Average Cycle Length (days)",  key: "cycleLength",     type: "number" },
                 { label: "Period Duration (days)",       key: "periodLength",    type: "number" },
               ].map(f => (
-                <div key={f.key} style={{ marginBottom: 16 }}>
+                <div key={f.key} style={{ marginBottom: 20 }}>
                   <Label>{f.label}</Label>
                   <input
                     type={f.type}
@@ -807,10 +829,10 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 onChange={e => onUpdate({ ...profile, notes: e.target.value })}
                 placeholder="Mood patterns, preferences, observations…"
                 className="input-field"
-                style={{ ...inputStyle, minHeight: 110, resize: "vertical" }}
+                style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
               />
             </Card>
-            <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ width: "100%", padding: 16, fontSize: 14, borderRadius: B.r.lg }}>
+            <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ width: "100%", padding: 18, fontSize: 15, borderRadius: B.r.lg }}>
               💕 Log Intimacy Session
             </Btn>
           </div>
@@ -819,42 +841,39 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         {/* ═════════════ INSIGHTS ═════════════ */}
         {tab === "insights" && (
           <div className="fade-in">
-            {/* Phase guide cards */}
             {Object.values(PHASES).map((val, i) => {
               const t = TIPS[val.key];
               const isCur = phase === val.key;
               return (
-                <div key={val.key} className={`fade-in-${Math.min(i + 1, 4)}`} style={{ marginBottom: 12 }}>
+                <div key={val.key} className={`fade-in-${Math.min(i + 1, 4)}`} style={{ marginBottom: 16 }}>
                   <Card style={{
                     border: `1px solid ${isCur ? val.color + "55" : B.border}`,
                     background: isCur ? `linear-gradient(135deg, ${val.bg}, ${B.card})` : B.card,
                     boxShadow: isCur ? `0 6px 30px ${val.color}18` : B.shadow.card,
                   }}>
-                    {/* Header */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: val.color + "1a", border: `1px solid ${val.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 14, background: val.color + "1a", border: `1px solid ${val.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
                           {val.emoji}
                         </div>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: val.color, fontFamily: B.serif }}>{val.label}</div>
-                          <div style={{ fontSize: 11, color: B.textMuted }}>Day {val.days[0]}–{val.days[1]}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: val.color, fontFamily: B.serif }}>{val.label}</div>
+                          <div style={{ fontSize: 12, color: B.textMuted }}>Day {val.days[0]}–{val.days[1]}</div>
                         </div>
                       </div>
                       {isCur && (
-                        <div style={{ background: val.color, borderRadius: B.r.pill, padding: "4px 14px", fontSize: 11, fontWeight: 700, color: "#0d0d1a" }}>NOW</div>
+                        <div style={{ background: val.color, borderRadius: B.r.pill, padding: "4px 16px", fontSize: 12, fontWeight: 700, color: "#0d0d1a" }}>NOW</div>
                       )}
                     </div>
-                    <p style={{ fontSize: 13, color: B.textSecondary, lineHeight: 1.7, margin: "0 0 14px" }}>{t.note}</p>
-                    {/* Tags */}
-                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                    <p style={{ fontSize: 14, color: B.textSecondary, lineHeight: 1.7, margin: "0 0 16px" }}>{t.note}</p>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {[
                         { icon: "⚡", label: `Energy: ${t.energy}` },
                         { icon: "🧠", label: `Mood: ${t.mood}` },
                         { icon: "💫", label: `Libido: ${t.libido}` },
                         { icon: t.safe ? "✅" : "⚠️", label: t.safe ? "Safe" : "Risky" },
                       ].map(tag => (
-                        <span key={tag.label} style={{ background: val.color + "18", border: `1px solid ${val.color}30`, borderRadius: B.r.pill, padding: "4px 12px", fontSize: 11, color: val.color }}>
+                        <span key={tag.label} style={{ background: val.color + "18", border: `1px solid ${val.color}30`, borderRadius: B.r.pill, padding: "6px 14px", fontSize: 12, color: val.color }}>
                           {tag.icon} {tag.label}
                         </span>
                       ))}
@@ -869,35 +888,35 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
       </div>
 
-      {/* ── LOG INTIMACY MODAL ── */}
+      {/* ── LOG INTIMACY MODAL (unified style) ── */}
       {showLogModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }}>
-          <div className="fade-in" style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: "28px 28px 0 0", padding: 28, width: "100%", maxWidth: 500 }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: B.border, margin: "0 auto 22px" }} />
-            <h3 style={{ fontFamily: B.serif, fontSize: 20, marginBottom: 20, color: B.textPrimary }}>💕 Log Intimacy Session</h3>
+          <div className="fade-in" style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 28, width: "100%", maxWidth: 500 }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: B.border, margin: "0 auto 22px" }} />
+            <h3 style={{ fontFamily: B.serif, fontSize: 22, marginBottom: 20, color: B.textPrimary }}>💕 Log Intimacy Session</h3>
             <Label>Date</Label>
             <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="input-field"
-              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.md, padding: "12px 16px", color: B.textPrimary, fontSize: 14, outline: "none", display: "block", marginBottom: 22 }} />
-            <div style={{ display: "flex", gap: 10 }}>
+              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.md, padding: "14px 18px", color: B.textPrimary, fontSize: 15, outline: "none", display: "block", marginBottom: 24 }} />
+            <div style={{ display: "flex", gap: 12 }}>
               <Btn variant="secondary" onClick={() => setShowLogModal(false)} style={{ flex: 1, padding: 14 }}>Cancel</Btn>
-              <Btn color={B.lavender} onClick={logIntimacy} style={{ flex: 2, padding: 14, fontSize: 14 }}>Save Session 💕</Btn>
+              <Btn color={B.lavender} onClick={logIntimacy} style={{ flex: 2, padding: 14, fontSize: 15 }}>Save Session 💕</Btn>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── DELETE CONFIRM MODAL ── */}
+      {/* ── DELETE CONFIRM MODAL (unified) ── */}
       {showDelModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)", padding: 20 }}>
-          <div className="fade-in" style={{ background: B.surface, border: "1px solid rgba(244,114,182,0.25)", borderRadius: B.r.xl, padding: 32, width: "100%", maxWidth: 340, textAlign: "center" }}>
-            <div style={{ fontSize: 44, marginBottom: 14 }}>🗑️</div>
-            <h3 style={{ fontFamily: B.serif, fontSize: 22, marginBottom: 8, color: B.textPrimary }}>Delete {profile.name}?</h3>
-            <p style={{ color: B.textSecondary, fontSize: 13, marginBottom: 26, lineHeight: 1.65 }}>
+          <div className="fade-in" style={{ background: B.surface, border: `1px solid rgba(244,114,182,0.25)`, borderRadius: B.r.xl, padding: 32, width: "100%", maxWidth: 360, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
+            <h3 style={{ fontFamily: B.serif, fontSize: 24, marginBottom: 10, color: B.textPrimary }}>Delete {profile.name}?</h3>
+            <p style={{ color: B.textSecondary, fontSize: 14, marginBottom: 28, lineHeight: 1.65 }}>
               All cycle history, intimacy logs, symptoms, and notes will be permanently removed.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 12 }}>
               <Btn variant="secondary" onClick={() => setShowDelModal(false)} style={{ flex: 1, padding: 14 }}>Cancel</Btn>
-              <Btn variant="danger" onClick={onDelete} style={{ flex: 1, padding: 14, background: "#f472b6", color: "white", border: "none" }}>Delete</Btn>
+              <Btn variant="danger" onClick={onDelete} style={{ flex: 1, padding: 14 }}>Delete</Btn>
             </div>
           </div>
         </div>
@@ -906,19 +925,44 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   );
 }
 
-// ─── ADD PROFILE ──────────────────────────────────────────────────────────────
+// ─── ADD PROFILE (with inline validation) ─────────────────────────────────────
 
 function AddProfile({ onAdd, onBack }) {
   const [form, setForm] = useState({
     name: "", lastPeriodStart: todayStr(),
     cycleLength: 28, periodLength: 5, avatar: "🌸",
   });
-  const canSubmit = form.name.trim().length > 0;
+  const [nameError, setNameError] = useState(false);
+  const [cycleError, setCycleError] = useState(false);
+
+  const validateName = (name) => {
+    const valid = name.trim().length > 0;
+    setNameError(!valid);
+    return valid;
+  };
+  const validateCycle = (len) => {
+    const valid = len >= 21 && len <= 35;
+    setCycleError(!valid);
+    return valid;
+  };
+
+  const canSubmit = form.name.trim().length > 0 && form.cycleLength >= 21 && form.cycleLength <= 35;
+
+  const handleNameChange = (e) => {
+    const val = e.target.value;
+    setForm({ ...form, name: val });
+    validateName(val);
+  };
+  const handleCycleChange = (e) => {
+    const val = Math.max(1, parseInt(e.target.value) || 28);
+    setForm({ ...form, cycleLength: val });
+    validateCycle(val);
+  };
 
   const inputStyle = {
     width: "100%", background: "rgba(255,255,255,0.04)",
     border: `1px solid ${B.border}`, borderRadius: B.r.md,
-    padding: "12px 16px", color: B.textPrimary, fontSize: 14,
+    padding: "14px 18px", color: B.textPrimary, fontSize: 15,
     outline: "none", display: "block",
   };
 
@@ -934,13 +978,12 @@ function AddProfile({ onAdd, onBack }) {
           <p style={{ color: B.textSecondary, fontSize: 14, lineHeight: 1.55 }}>Track her cycle and get personalized insights.</p>
         </div>
 
-        <Card className="fade-in-1" style={{ marginBottom: 14 }}>
-          {/* Avatar picker */}
+        <Card className="fade-in-1" style={{ marginBottom: 16 }}>
           <Label>Choose Avatar</Label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
             {AVATARS.map(a => (
               <button key={a} onClick={() => setForm({ ...form, avatar: a })} className="btn-hover" style={{
-                width: 46, height: 46, fontSize: 20, borderRadius: 14, cursor: "pointer",
+                width: 48, height: 48, fontSize: 22, borderRadius: 14, cursor: "pointer",
                 background: form.avatar === a ? B.lavenderDim : "rgba(255,255,255,0.04)",
                 border: `2px solid ${form.avatar === a ? B.lavender : B.border}`,
                 transition: B.tx,
@@ -949,14 +992,13 @@ function AddProfile({ onAdd, onBack }) {
           </div>
           <Divider />
 
-          {/* Fields */}
           {[
-            { label: "Name",                    key: "name",            type: "text",   ph: "Her name…"   },
-            { label: "Last Period Start Date",  key: "lastPeriodStart", type: "date"                      },
-            { label: "Average Cycle Length",    key: "cycleLength",     type: "number", ph: "28"          },
-            { label: "Period Duration (days)",  key: "periodLength",    type: "number", ph: "5"           },
+            { label: "Name",                    key: "name",            type: "text",   ph: "Her name…",   error: nameError, errorMsg: "Name is required" },
+            { label: "Last Period Start Date",  key: "lastPeriodStart", type: "date",   error: false },
+            { label: "Average Cycle Length",    key: "cycleLength",     type: "number", ph: "28", error: cycleError, errorMsg: "Cycle length must be 21–35 days" },
+            { label: "Period Duration (days)",  key: "periodLength",    type: "number", ph: "5", error: false },
           ].map(f => (
-            <div key={f.key} style={{ marginBottom: 16 }}>
+            <div key={f.key} style={{ marginBottom: 20 }}>
               <Label>{f.label}</Label>
               <input
                 type={f.type}
@@ -964,11 +1006,12 @@ function AddProfile({ onAdd, onBack }) {
                 placeholder={f.ph}
                 min={f.type === "number" ? 1 : undefined}
                 max={f.type === "number" ? 60 : undefined}
-                onChange={e => setForm({ ...form, [f.key]: f.type === "number" ? Math.max(1, parseInt(e.target.value) || 28) : e.target.value })}
+                onChange={f.key === "name" ? handleNameChange : f.key === "cycleLength" ? handleCycleChange : e => setForm({ ...form, [f.key]: f.type === "number" ? Math.max(1, parseInt(e.target.value) || 28) : e.target.value })}
                 className="input-field"
-                style={inputStyle}
+                style={{ ...inputStyle, borderColor: f.error ? "#f472b6" : undefined }}
                 autoFocus={f.key === "name"}
               />
+              {f.error && <div style={{ color: "#f472b6", fontSize: 12, marginTop: 4 }}>{f.errorMsg}</div>}
             </div>
           ))}
         </Card>
@@ -977,7 +1020,7 @@ function AddProfile({ onAdd, onBack }) {
           color={B.lavender}
           onClick={() => { if (canSubmit) onAdd({ ...form, id: Date.now().toString(), symptoms: [], intimacyLog: [], notes: "", hidden: false }); }}
           disabled={!canSubmit}
-          style={{ width: "100%", padding: "16px", fontSize: 15, borderRadius: B.r.lg }}
+          style={{ width: "100%", padding: "18px", fontSize: 16, borderRadius: B.r.lg }}
         >
           Add Profile →
         </Btn>
@@ -994,7 +1037,6 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   const hiddenCount = profiles.filter(p => p.hidden).length;
   const activeProfiles = profiles.filter(p => !p.hidden);
 
-  // Summary stats
   const safeCt    = activeProfiles.filter(p => TIPS[getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength))].safe).length;
   const ovCt      = activeProfiles.filter(p => getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength)) === "ovulation").length;
   const sessionCt = activeProfiles.reduce((a, p) => a + (p.intimacyLog || []).length, 0);
@@ -1004,70 +1046,65 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
       <BgDecor phase="luteal" />
       <div style={{ position: "relative", zIndex: 2, maxWidth: 500, margin: "0 auto", padding: "0 18px 100px" }}>
 
-        {/* ── HEADER ── */}
         <div className="fade-in" style={{ padding: "26px 0 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <p style={{ fontSize: 12, color: B.textMuted, letterSpacing: 0.5, marginBottom: 3, fontWeight: 500 }}>Welcome back</p>
-              <h1 style={{ fontFamily: B.serif, fontSize: 28, fontWeight: 700, marginBottom: 3, lineHeight: 1.1, color: B.textPrimary }}>{user.username}</h1>
-              <p style={{ fontSize: 12, color: B.textMuted }}>
+              <p style={{ fontSize: 13, color: B.textMuted, letterSpacing: 0.5, marginBottom: 4, fontWeight: 500 }}>Welcome back</p>
+              <h1 style={{ fontFamily: B.serif, fontSize: 28, fontWeight: 700, marginBottom: 4, lineHeight: 1.1, color: B.textPrimary }}>{user.username}</h1>
+              <p style={{ fontSize: 13, color: B.textMuted }}>
                 {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", paddingTop: 4 }}>
-              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "9px 20px" }}>+ Add Profile</Btn>
-              <Btn variant="ghost" onClick={onLogout} style={{ padding: "7px 14px", fontSize: 12 }}>Sign out</Btn>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end", paddingTop: 4 }}>
+              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "10px 22px" }}>+ Add Profile</Btn>
+              <Btn variant="ghost" onClick={onLogout} style={{ padding: "8px 16px", fontSize: 13 }}>Sign out</Btn>
             </div>
           </div>
         </div>
 
-        {/* ── SUMMARY STRIP ── */}
         {activeProfiles.length > 0 && (
-          <div className="fade-in-1" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 20 }}>
+          <div className="fade-in-1" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 24 }}>
             {[
               { label: "Profiles",  val: activeProfiles.length, color: B.lavender,  bg: PHASES.luteal.bg  },
               { label: "Safe Now",  val: safeCt,                color: "#34d399",   bg: PHASES.ovulation.bg },
               { label: "Ovulating", val: ovCt,                  color: "#fbbf24",   bg: PHASES.follicular.bg },
               { label: "Sessions",  val: sessionCt,             color: "#f472b6",   bg: PHASES.menstruation.bg },
             ].map(s => (
-              <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}25`, borderRadius: B.r.lg, padding: "12px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: B.textMuted, marginTop: 4, fontWeight: 500 }}>{s.label}</div>
+              <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}25`, borderRadius: B.r.lg, padding: "14px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 11, color: B.textMuted, marginTop: 5, fontWeight: 500 }}>{s.label}</div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── HIDDEN TOGGLE ── */}
         {hiddenCount > 0 && (
           <button
             onClick={() => setShowHidden(h => !h)}
             className="btn-hover"
-            style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.pill, padding: "11px 16px", color: B.textMuted, fontSize: 12, cursor: "pointer", marginBottom: 16, fontFamily: B.sans, transition: B.tx }}
+            style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.pill, padding: "12px 18px", color: B.textMuted, fontSize: 13, cursor: "pointer", marginBottom: 18, fontFamily: B.sans, transition: B.tx }}
           >
             {showHidden ? `👁 Showing ${hiddenCount} hidden — tap to hide` : `🙈 ${hiddenCount} hidden profile${hiddenCount > 1 ? "s" : ""} — tap to reveal`}
           </button>
         )}
 
-        {/* ── EMPTY STATE ── */}
         {visible.length === 0 ? (
-          <div className="fade-in" style={{ textAlign: "center", padding: "72px 20px" }}>
-            <div style={{ fontSize: 60, marginBottom: 18 }}>🌙</div>
-            <h2 style={{ fontFamily: B.serif, fontSize: 24, marginBottom: 10, color: B.textPrimary }}>
+          <div className="fade-in" style={{ textAlign: "center", padding: "80px 20px" }}>
+            <div style={{ fontSize: 64, marginBottom: 20 }}>🌙</div>
+            <h2 style={{ fontFamily: B.serif, fontSize: 26, marginBottom: 12, color: B.textPrimary }}>
               {showHidden ? "No hidden profiles" : "No profiles yet"}
             </h2>
-            <p style={{ color: B.textSecondary, marginBottom: 32, lineHeight: 1.65, fontSize: 14 }}>
+            <p style={{ color: B.textSecondary, marginBottom: 36, lineHeight: 1.65, fontSize: 15 }}>
               {showHidden ? "All profiles are visible." : "Add your first profile to start tracking cycles and getting insights."}
             </p>
             {!showHidden && (
-              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "13px 32px", fontSize: 15 }}>
+              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "14px 36px", fontSize: 16 }}>
                 Add First Profile →
               </Btn>
             )}
           </div>
         ) : (
-          /* ── PROFILE CARDS ── */
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {visible.map((profile, idx) => {
               const day   = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
               const phase = getPhaseFromDay(day);
@@ -1082,67 +1119,64 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
                   key={profile.id}
                   className={`card-hover fade-in-${Math.min(idx + 1, 4)}`}
                   onClick={() => onSelect(profile)}
+                  role="button"
+                  tabIndex={0}
                   style={{ borderRadius: B.r.xl, overflow: "hidden", cursor: "pointer", background: B.card, boxShadow: B.shadow.card }}
                 >
-                  {/* Color top stripe */}
                   <div style={{ height: 5, background: `linear-gradient(90deg, ${accent}, ${accent}88)` }} />
-                  <div style={{ padding: "18px 18px 16px", border: `1px solid ${accent}18`, borderTop: "none", borderRadius: `0 0 ${B.r.xl}px ${B.r.xl}px` }}>
+                  <div style={{ padding: "20px 18px 18px", border: `1px solid ${accent}18`, borderTop: "none", borderRadius: `0 0 ${B.r.xl}px ${B.r.xl}px` }}>
 
-                    {/* Name + phase + badge */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 16, background: accent + "28", border: `2px solid ${accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: 16, background: accent + "28", border: `2px solid ${accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
                         {profile.avatar}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
+                        <div style={{ fontSize: 20, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 5 }}>
                           {profile.name}
                         </div>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PD.color + "18", borderRadius: B.r.pill, padding: "3px 10px", border: `1px solid ${PD.color}28` }}>
-                          <span style={{ fontSize: 10 }}>{PD.emoji}</span>
-                          <span style={{ fontSize: 11, color: PD.color, fontWeight: 600 }}>{PD.label} · Day {day}</span>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: PD.color + "18", borderRadius: B.r.pill, padding: "4px 12px", border: `1px solid ${PD.color}28` }}>
+                          <span style={{ fontSize: 11 }}>{PD.emoji}</span>
+                          <span style={{ fontSize: 12, color: PD.color, fontWeight: 600 }}>{PD.label} · Day {day}</span>
                         </div>
                       </div>
                       <div style={{
                         background: tips.safe ? "rgba(52,211,153,0.15)" : "rgba(244,114,182,0.15)",
                         border: `1px solid ${tips.safe ? "#34d39940" : "#f472b640"}`,
-                        borderRadius: B.r.pill, padding: "6px 12px", flexShrink: 0,
+                        borderRadius: B.r.pill, padding: "6px 14px", flexShrink: 0,
                       }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: tips.safe ? "#34d399" : "#f472b6" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: tips.safe ? "#34d399" : "#f472b6" }}>
                           {tips.safe ? "✅ OK" : "⚠️ Risk"}
                         </div>
                       </div>
                     </div>
 
-                    {/* Phase progress bar */}
-                    <div style={{ display: "flex", height: 5, borderRadius: 5, overflow: "hidden", gap: 2, marginBottom: 12 }}>
+                    <div style={{ display: "flex", height: 6, borderRadius: 5, overflow: "hidden", gap: 2, marginBottom: 14 }}>
                       {Object.values(PHASES).map(v => {
                         const w = ((v.days[1] - v.days[0] + 1) / profile.cycleLength) * 100;
                         return <div key={v.key} style={{ width: `${w}%`, background: phase === v.key ? v.color : v.color + "25", borderRadius: 3, transition: B.txSlow }} />;
                       })}
                     </div>
 
-                    {/* Stats */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (profile.symptoms || []).length > 0 ? 12 : 0 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: (profile.symptoms || []).length > 0 ? 14 : 0 }}>
                       {[
                         { label: "Period",    val: dToP <= 0 ? "Today" : `${dToP}d`,                             color: "#f472b6", bg: PHASES.menstruation.bg },
                         { label: "Ovulation", val: dToO <= 0 ? "Now!" : dToO === 1 ? "Tmrw" : `${dToO}d`,        color: "#34d399", bg: PHASES.ovulation.bg    },
                         { label: "Sessions",  val: `${(profile.intimacyLog || []).length}`,                       color: B.lavender, bg: PHASES.luteal.bg      },
                       ].map(s => (
-                        <div key={s.label} style={{ background: s.bg, borderRadius: B.r.md, padding: "9px 10px" }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
-                          <div style={{ fontSize: 10, color: B.textMuted, marginTop: 3 }}>{s.label}</div>
+                        <div key={s.label} style={{ background: s.bg, borderRadius: B.r.md, padding: "10px 10px" }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
+                          <div style={{ fontSize: 11, color: B.textMuted, marginTop: 4 }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Symptom tags */}
                     {(profile.symptoms || []).length > 0 && (
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {(profile.symptoms || []).slice(0, 4).map(s => (
-                          <span key={s} style={{ background: PD.color + "18", border: `1px solid ${PD.color}28`, borderRadius: B.r.pill, padding: "3px 10px", fontSize: 10, color: PD.color }}>{s}</span>
+                          <span key={s} style={{ background: PD.color + "18", border: `1px solid ${PD.color}28`, borderRadius: B.r.pill, padding: "4px 12px", fontSize: 11, color: PD.color }}>{s}</span>
                         ))}
                         {(profile.symptoms || []).length > 4 && (
-                          <span style={{ fontSize: 11, color: B.textMuted, alignSelf: "center" }}>+{(profile.symptoms || []).length - 4}</span>
+                          <span style={{ fontSize: 12, color: B.textMuted, alignSelf: "center" }}>+{(profile.symptoms || []).length - 4}</span>
                         )}
                       </div>
                     )}
@@ -1167,24 +1201,22 @@ function Login({ onLogin }) {
   return (
     <div style={{ minHeight: "100vh", background: B.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: B.sans, position: "relative", padding: 20 }}>
       <BgDecor phase="luteal" />
-      {/* Extra decorative blobs */}
       <div style={{ position: "absolute", top: "8%", right: "-8%", width: 260, height: 260, borderRadius: "60% 40% 55% 45%", background: B.lavender + "18", pointerEvents: "none", animation: "floatBlob 16s ease-in-out infinite" }} />
       <div style={{ position: "absolute", bottom: "12%", left: "-10%", width: 220, height: 220, borderRadius: "50%", background: "#f472b618", pointerEvents: "none", animation: "floatBlob 20s ease-in-out infinite 3s" }} />
       <div style={{ position: "absolute", top: "50%", right: "6%", width: 100, height: 100, borderRadius: "50%", background: "#fbbf2412", pointerEvents: "none", animation: "floatBlob 25s ease-in-out infinite 7s" }} />
 
-      <div className="fade-in" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 380 }}>
-        {/* Hero */}
-        <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <div style={{ fontSize: 56, marginBottom: 16, animation: "floatBlob 6s ease-in-out infinite" }}>🌙</div>
-          <h1 style={{ fontFamily: B.serif, fontSize: 42, fontWeight: 700, lineHeight: 1.1, color: B.textPrimary, margin: "0 0 10px" }}>
+      <div className="fade-in" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 400 }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 60, marginBottom: 18, animation: "floatBlob 6s ease-in-out infinite" }}>🌙</div>
+          <h1 style={{ fontFamily: B.serif, fontSize: 46, fontWeight: 700, lineHeight: 1.1, color: B.textPrimary, margin: "0 0 12px" }}>
             Find Your<br />Best Insight.
           </h1>
-          <p style={{ color: B.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+          <p style={{ color: B.textMuted, fontSize: 15, lineHeight: 1.6 }}>
             Cycle intelligence for the informed man.
           </p>
         </div>
 
-        <div style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
+        <div style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 32, boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
           <Label>Username</Label>
           <input
             value={username}
@@ -1198,21 +1230,21 @@ function Login({ onLogin }) {
             style={{
               width: "100%", background: "rgba(255,255,255,0.04)",
               border: `1px solid ${focused ? B.lavender + "80" : B.border}`,
-              borderRadius: B.r.md, padding: "14px 18px", color: B.textPrimary,
-              fontSize: 15, outline: "none", display: "block",
+              borderRadius: B.r.md, padding: "16px 20px", color: B.textPrimary,
+              fontSize: 16, outline: "none", display: "block",
               boxShadow: focused ? `0 0 0 3px ${B.lavender}18` : "none",
-              transition: B.tx, marginBottom: 20,
+              transition: B.tx, marginBottom: 24,
             }}
           />
           <Btn
             color={B.lavender}
             onClick={() => canLogin && onLogin(username.trim())}
             disabled={!canLogin}
-            style={{ width: "100%", padding: "15px", fontSize: 15, borderRadius: B.r.lg }}
+            style={{ width: "100%", padding: "16px", fontSize: 16, borderRadius: B.r.lg }}
           >
             Enter Cyclr →
           </Btn>
-          <p style={{ textAlign: "center", color: B.textMuted, fontSize: 11, marginTop: 16, lineHeight: 1.5 }}>
+          <p style={{ textAlign: "center", color: B.textMuted, fontSize: 12, marginTop: 20, lineHeight: 1.5 }}>
             All data is stored locally on your device.<br />No account needed.
           </p>
         </div>
@@ -1228,6 +1260,19 @@ export default function App() {
   const [user,     setUser]     = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [selected, setSelected] = useState(null);
+
+  // Sync across tabs
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === "cyclr_profiles") {
+        try {
+          setProfiles(JSON.parse(e.newValue || "[]"));
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1265,11 +1310,11 @@ export default function App() {
   }
   function handleSelect(profile) { setSelected(profile); setScreen("profile"); }
 
-  // Loading guard — prevents blank flash
+  // Loading guard
   if (screen === "loading") {
     return (
       <div style={{ minHeight: "100vh", background: B.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 40, animation: "floatBlob 2s ease-in-out infinite" }}>🌙</div>
+        <div style={{ fontSize: 44, animation: "floatBlob 2s ease-in-out infinite" }}>🌙</div>
       </div>
     );
   }
