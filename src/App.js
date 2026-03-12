@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from "react";
 
 // ─── BRAND SYSTEM ─────────────────────────────────────────────────────────────
-
 const B = {
   // Core palette
   bg:      "#09090f",
@@ -10,7 +9,7 @@ const B = {
   border:  "rgba(255,255,255,0.07)",
   borderHover: "rgba(255,255,255,0.15)",
 
-  // Text – adjusted for better contrast (WCAG AA)
+  // Text – improved contrast
   textPrimary:   "#f0eeff",
   textSecondary: "rgba(240,238,255,0.72)", // increased from 0.55
   textMuted:     "rgba(240,238,255,0.45)", // increased from 0.28
@@ -38,7 +37,7 @@ const B = {
   txSlow: "all 0.3s ease",
 };
 
-// Phase definitions – unchanged
+// Phase definitions
 const PHASES = {
   menstruation: {
     label: "Menstruation", short: "Period", key: "menstruation",
@@ -79,11 +78,21 @@ const AVATARS = ["🌸","💜","🌙","🦋","🌺","✨","💎","🌹","🔮","
 const CARD_ACCENTS = ["#9b87f5","#fbbf24","#f472b6","#34d399","#60a5fa","#fb923c"];
 
 // ─── GLOBAL STYLES (injected once) ───────────────────────────────────────────
-// Added prefers-reduced-motion support
 const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #09090f; color: #f0eeff; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { 
+    background: #09090f; 
+    color: #f0eeff; 
+    font-family: 'Inter', system-ui, sans-serif; 
+    -webkit-font-smoothing: antialiased; 
+    -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS */
+    scroll-behavior: smooth;
+    overflow-y: auto;
+  }
+  #root, #root > div {
+    overscroll-behavior: none; /* prevents pull-to-refresh and edge glow */
+  }
   input, textarea, button { font-family: inherit; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
   ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
@@ -116,7 +125,7 @@ const GLOBAL_CSS = `
 
   .btn-hover { transition: all 0.15s ease; }
   .btn-hover:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
-  .btn-hover:active:not(:disabled) { transform: scale(0.98); } /* added active state */
+  .btn-hover:active:not(:disabled) { transform: scale(0.98); }
 
   .tab-btn { transition: all 0.18s ease; }
   .sym-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
@@ -137,7 +146,6 @@ function GlobalStyles() {
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-
 function getDayOfCycle(lastPeriodStart, cycleLength = 28) {
   const diff = Math.floor((new Date() - new Date(lastPeriodStart)) / 86400000);
   return ((diff % cycleLength) + cycleLength) % cycleLength + 1;
@@ -166,7 +174,6 @@ function fmtDate(d)   { return new Date(d).toLocaleDateString("en-US", { month: 
 function todayStr()   { return new Date().toISOString().split("T")[0]; }
 
 // ─── REUSABLE PRIMITIVES ──────────────────────────────────────────────────────
-
 function Card({ children, style = {}, className = "", onClick }) {
   return (
     <div
@@ -178,7 +185,7 @@ function Card({ children, style = {}, className = "", onClick }) {
         background: B.card,
         border: `1px solid ${B.border}`,
         borderRadius: B.r.xl,
-        padding: 22, // increased from 20 for better spacing
+        padding: 22,
         boxShadow: B.shadow.card,
         cursor: onClick ? "pointer" : "default",
         ...style,
@@ -195,8 +202,8 @@ function Btn({ children, onClick, variant = "primary", color, disabled, style = 
     cursor: disabled ? "not-allowed" : "pointer", fontFamily: B.sans,
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     transition: B.tx, opacity: disabled ? 0.45 : 1,
-    padding: "12px 24px", // increased from 10px 20px for better touch target
-    fontSize: 14, // increased from 13
+    padding: "12px 24px",
+    fontSize: 14,
   };
   const c = color || B.lavender;
   const variants = {
@@ -226,7 +233,7 @@ function Label({ children, style = {} }) {
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: B.border, margin: "20px 0" }} />; // increased margin
+  return <div style={{ height: 1, background: B.border, margin: "20px 0" }} />;
 }
 
 function Spinner({ color = B.lavender }) {
@@ -242,7 +249,6 @@ function Spinner({ color = B.lavender }) {
 }
 
 // ─── BACKGROUND DECOR ─────────────────────────────────────────────────────────
-
 function BgDecor({ phase }) {
   const c = PHASES[phase || "luteal"].color;
   return (
@@ -323,7 +329,7 @@ const CycleRing = memo(function CycleRing({ day, cycleLength, size = 200, glowin
       {/* Day dot */}
       <circle cx={dx} cy={dy} r={size * 0.06} fill="white" />
       <circle cx={dx} cy={dy} r={size * 0.035} fill={curColor} />
-      {/* Center – adjusted text positions for better centering */}
+      {/* Center – adjusted positions */}
       <text x={cx} y={cy - 12} textAnchor="middle" fill={B.textPrimary}
         fontSize={size * 0.15} fontWeight={800} fontFamily={B.serif}>{day}</text>
       <text x={cx} y={cy + 10} textAnchor="middle" fill={B.textMuted}
@@ -334,9 +340,8 @@ const CycleRing = memo(function CycleRing({ day, cycleLength, size = 200, glowin
   );
 });
 
-// ─── MONTH CALENDAR ───────────────────────────────────────────────────────────
-
-function MonthCalendar({ profile, monthOffset = 0 }) {
+// ─── MONTH CALENDAR (with onDayClick) ─────────────────────────────────────────
+function MonthCalendar({ profile, monthOffset = 0, onDayClick }) {
   const base = new Date();
   base.setMonth(base.getMonth() + monthOffset);
   const year = base.getFullYear(), month = base.getMonth();
@@ -372,16 +377,19 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
           const col = PHASES[ph].color;
           const isToday = isThisMonth && d === today.getDate();
           const hasI = isIntimacy(d);
-          // Add semi-transparent overlay for better text contrast
-          const bgColor = isToday ? col : col + "1a";
           return (
-            <div key={d} style={{
-              aspectRatio: "1", borderRadius: 8, position: "relative",
-              background: bgColor,
-              border: `1px solid ${isToday ? col : col + "35"}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: isToday ? `0 0 12px ${col}50` : "none",
-            }}>
+            <div
+              key={d}
+              onClick={() => onDayClick?.(year, month, d)}
+              style={{
+                aspectRatio: "1", borderRadius: 8, position: "relative",
+                background: isToday ? col : col + "1a",
+                border: `1px solid ${isToday ? col : col + "35"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: isToday ? `0 0 12px ${col}50` : "none",
+                cursor: "pointer",
+              }}
+            >
               <span style={{ fontSize: 12, color: isToday ? "#111" : B.textSecondary, fontWeight: isToday ? 700 : 400 }}>{d}</span>
               {hasI && <span style={{ position: "absolute", top: 2, right: 2, fontSize: 8, lineHeight: 1 }}>💕</span>}
             </div>
@@ -404,8 +412,7 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
   );
 }
 
-// ─── AI INSIGHT (improved) ────────────────────────────────────────────────────
-
+// ─── AI INSIGHT (with error logging) ──────────────────────────────────────────
 function AIInsight({ profile }) {
   const [text, setText]       = useState("");
   const [loading, setLoading] = useState(false);
@@ -420,7 +427,11 @@ function AIInsight({ profile }) {
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          // ⚠️ Add your API key here or use a backend proxy
+          // "x-api-key": "YOUR_ANTHROPIC_KEY",
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 300,
@@ -433,9 +444,10 @@ function AIInsight({ profile }) {
       });
       const d = await res.json();
       setText(d.content?.[0]?.text || "Could not generate insight.");
-    } catch {
+    } catch (err) {
+      console.error("AI Insight error:", err); // Log the actual error
       setError(true);
-      setText("AI unavailable. Check your connection.");
+      setText("AI unavailable. Check your connection and try again.");
     }
     setLoading(false);
   }, [profile, day, phase]);
@@ -479,7 +491,6 @@ function AIInsight({ profile }) {
 }
 
 // ─── PROFILE DETAIL ───────────────────────────────────────────────────────────
-
 function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [tab,           setTab]           = useState("overview");
   const [monthOffset,   setMonthOffset]   = useState(0);
@@ -488,6 +499,12 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [logDate,       setLogDate]       = useState(todayStr());
   const [showDelModal,  setShowDelModal]  = useState(false);
   const [periodFlash,   setPeriodFlash]   = useState(false);
+
+  // Day modal state
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [showDayModal, setShowDayModal] = useState(false);
+  const [daySymptoms, setDaySymptoms] = useState([]);
+  const [dayNotes, setDayNotes] = useState("");
 
   const day    = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
   const phase  = getPhaseFromDay(day);
@@ -521,6 +538,38 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
     setTimeout(() => setPeriodFlash(false), 2000);
   }
 
+  // Day click handler
+  function handleDayClick(year, month, day) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayData = profile.dayData?.[dateStr] || { symptoms: [], notes: "" };
+    setSelectedDay({ year, month, day, dateStr });
+    setDaySymptoms(dayData.symptoms || []);
+    setDayNotes(dayData.notes || "");
+    setShowDayModal(true);
+  }
+
+  // Save day data
+  function saveDayData() {
+    onUpdate({
+      ...profile,
+      dayData: {
+        ...profile.dayData,
+        [selectedDay.dateStr]: {
+          symptoms: daySymptoms,
+          notes: dayNotes,
+        },
+      },
+    });
+    setShowDayModal(false);
+  }
+
+  // Toggle symptom for the day
+  function toggleDaySym(s) {
+    setDaySymptoms(prev => 
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    );
+  }
+
   const inputStyle = {
     width: "100%", background: "rgba(255,255,255,0.04)",
     border: `1px solid ${B.border}`, borderRadius: B.r.md,
@@ -540,7 +589,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
       <BgDecor phase={phase} />
       <div style={{ position: "relative", zIndex: 2, maxWidth: 500, margin: "0 auto", padding: "0 18px 100px" }}>
 
-        {/* ── TOP BAR ── */}
+        {/* TOP BAR */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px", gap: 8 }}>
           <Btn variant="secondary" onClick={onBack} style={{ padding: "8px 16px", fontSize: 13 }}>← Back</Btn>
           <div style={{ display: "flex", gap: 8 }}>
@@ -553,7 +602,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </div>
         </div>
 
-        {/* ── HERO CARD ── */}
+        {/* HERO CARD */}
         <div className="fade-in" style={{ position: "relative", marginBottom: 16 }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 140, height: 140, borderRadius: "60% 40% 55% 45%", background: PD.color + "18", pointerEvents: "none", zIndex: -1 }} />
           <Card style={{ border: `1px solid ${PD.color}30`, background: `linear-gradient(135deg, ${PD.bg}, ${B.card})`, padding: 22, marginBottom: 0 }}>
@@ -593,7 +642,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </Card>
         </div>
 
-        {/* ── TABS ── */}
+        {/* TABS */}
         <div className="fade-in-1" style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: B.r.pill, padding: 4, marginBottom: 20, border: `1px solid ${B.border}`, gap: 2 }}>
           {tabs.map(t => (
             <button
@@ -614,7 +663,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           ))}
         </div>
 
-        {/* ═════════════ OVERVIEW ═════════════ */}
+        {/* OVERVIEW TAB */}
         {tab === "overview" && (
           <div className="fade-in">
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 24, animation: "pulseRing 4s ease-in-out infinite" }}>
@@ -703,7 +752,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </div>
         )}
 
-        {/* ═════════════ CALENDAR ═════════════ */}
+        {/* CALENDAR TAB */}
         {tab === "calendar" && (
           <div className="fade-in">
             <Card style={{ marginBottom: 16 }}>
@@ -729,7 +778,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                   className="btn-hover"
                 >›</button>
               </div>
-              <MonthCalendar profile={profile} monthOffset={monthOffset} />
+              <MonthCalendar profile={profile} monthOffset={monthOffset} onDayClick={handleDayClick} />
             </Card>
 
             <Card style={{ marginBottom: 16 }}>
@@ -799,7 +848,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </div>
         )}
 
-        {/* ═════════════ LOG ═════════════ */}
+        {/* LOG TAB */}
         {tab === "log" && (
           <div className="fade-in">
             <Card style={{ marginBottom: 16 }}>
@@ -838,7 +887,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </div>
         )}
 
-        {/* ═════════════ INSIGHTS ═════════════ */}
+        {/* INSIGHTS TAB */}
         {tab === "insights" && (
           <div className="fade-in">
             {Object.values(PHASES).map((val, i) => {
@@ -888,7 +937,57 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
       </div>
 
-      {/* ── LOG INTIMACY MODAL (unified style) ── */}
+      {/* DAY MODAL */}
+      {showDayModal && selectedDay && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)", padding: 20 }}>
+          <div className="fade-in" style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 28, width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontFamily: B.serif, fontSize: 22, color: B.textPrimary }}>
+                {new Date(selectedDay.year, selectedDay.month, selectedDay.day).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </h3>
+              <button onClick={() => setShowDayModal(false)} style={{ background: "none", border: "none", color: B.textMuted, fontSize: 24, cursor: "pointer" }}>×</button>
+            </div>
+
+            <Label>Symptoms</Label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+              {SYMPTOMS.map(s => {
+                const active = daySymptoms.includes(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => toggleDaySym(s)}
+                    className="sym-btn"
+                    style={{
+                      background: active ? PD.color + "25" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${active ? PD.color + "60" : B.border}`,
+                      borderRadius: B.r.pill, padding: "8px 16px",
+                      color: active ? PD.color : B.textMuted, fontSize: 13, cursor: "pointer",
+                    }}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Label>Notes</Label>
+            <textarea
+              value={dayNotes}
+              onChange={(e) => setDayNotes(e.target.value)}
+              placeholder="Add notes for this day..."
+              className="input-field"
+              style={{ ...inputStyle, minHeight: 100, marginBottom: 24 }}
+            />
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setShowDayModal(false)} style={{ flex: 1 }}>Cancel</Btn>
+              <Btn color={B.lavender} onClick={saveDayData} style={{ flex: 2 }}>Save Day Data</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOG INTIMACY MODAL */}
       {showLogModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }}>
           <div className="fade-in" style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 28, width: "100%", maxWidth: 500 }}>
@@ -905,7 +1004,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         </div>
       )}
 
-      {/* ── DELETE CONFIRM MODAL (unified) ── */}
+      {/* DELETE CONFIRM MODAL */}
       {showDelModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)", padding: 20 }}>
           <div className="fade-in" style={{ background: B.surface, border: `1px solid rgba(244,114,182,0.25)`, borderRadius: B.r.xl, padding: 32, width: "100%", maxWidth: 360, textAlign: "center" }}>
@@ -925,8 +1024,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   );
 }
 
-// ─── ADD PROFILE (with inline validation) ─────────────────────────────────────
-
+// ─── ADD PROFILE ──────────────────────────────────────────────────────────────
 function AddProfile({ onAdd, onBack }) {
   const [form, setForm] = useState({
     name: "", lastPeriodStart: todayStr(),
@@ -1018,7 +1116,7 @@ function AddProfile({ onAdd, onBack }) {
 
         <Btn
           color={B.lavender}
-          onClick={() => { if (canSubmit) onAdd({ ...form, id: Date.now().toString(), symptoms: [], intimacyLog: [], notes: "", hidden: false }); }}
+          onClick={() => { if (canSubmit) onAdd({ ...form, id: Date.now().toString(), symptoms: [], intimacyLog: [], notes: "", hidden: false, dayData: {} }); }}
           disabled={!canSubmit}
           style={{ width: "100%", padding: "18px", fontSize: 16, borderRadius: B.r.lg }}
         >
@@ -1030,7 +1128,6 @@ function AddProfile({ onAdd, onBack }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-
 function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   const [showHidden, setShowHidden] = useState(false);
   const visible = profiles.filter(p => showHidden ? p.hidden : !p.hidden);
@@ -1192,7 +1289,6 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
-
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [focused,  setFocused]  = useState(false);
@@ -1254,7 +1350,6 @@ function Login({ onLogin }) {
 }
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
-
 export default function App() {
   const [screen,   setScreen]   = useState("loading");
   const [user,     setUser]     = useState(null);
