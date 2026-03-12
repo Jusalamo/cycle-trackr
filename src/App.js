@@ -75,12 +75,12 @@ function GlobalStyles() {
 
 const T = {
   // Backgrounds
-  pageBg:   "#5a5a5a",      // mid-grey page (like DD)
-  surface:  "#252525",      // main dark card surface
+  pageBg: "#5a5a5a",      // mid-grey page background
+  surface: "#252525",      // main dark card surface
   surface2: "#2f2f2f",      // slightly lighter surface
-  row:      "#383838",      // list row background
-  rowAlt:   "#323232",
-
+  row: "#383838",          // list row background
+  rowAlt: "#323232",       // alternate row
+  
   // Borders
   border:   "rgba(255,255,255,0.08)",
   borderMd: "rgba(255,255,255,0.13)",
