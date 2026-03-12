@@ -1,267 +1,175 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-// ─── Brand Identity & Constants ─────────────────────────────────────────────
+// ─── BRAND SYSTEM ─────────────────────────────────────────────────────────────
 
-const BRAND = {
-  name: "Luna",
-  tagline: "Understand her rhythm",
-  colors: {
-    primary: "#9b87f5",      // Soft lavender
-    secondary: "#f9a8d4",    // Warm pink
-    accent: "#6ee7b7",       // Mint
-    background: "#0f0f1a",
-    surface: "#1a1a2e",
-    text: "#ffffff",
-    textSoft: "rgba(255,255,255,0.7)",
-    textMuted: "rgba(255,255,255,0.4)",
+const B = {
+  // Core palette
+  bg:      "#09090f",
+  surface: "#13131f",
+  card:    "#1a1a2e",
+  border:  "rgba(255,255,255,0.07)",
+  borderHover: "rgba(255,255,255,0.15)",
+
+  // Text
+  textPrimary:   "#f0eeff",
+  textSecondary: "rgba(240,238,255,0.55)",
+  textMuted:     "rgba(240,238,255,0.28)",
+
+  // Brand accent
+  lavender: "#9b87f5",
+  lavenderDim: "rgba(155,135,245,0.15)",
+
+  // Fonts
+  serif: "'Playfair Display', Georgia, serif",
+  sans:  "'Inter', 'Outfit', system-ui, sans-serif",
+
+  // Radii
+  r: { sm: 10, md: 14, lg: 20, xl: 24, pill: 999 },
+
+  // Shadows
+  shadow: {
+    card: "0 4px 24px rgba(0,0,0,0.5)",
+    glow: (col) => `0 0 28px ${col}40`,
+    btn:  (col) => `0 6px 20px ${col}55`,
   },
-  fonts: {
-    heading: "'Playfair Display', serif",
-    body: "'Inter', sans-serif",
-  },
-  animations: {
-    spring: "cubic-bezier(0.4, 0, 0.2, 1)",
-    bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-  }
+
+  // Transitions
+  tx: "all 0.18s ease",
+  txSlow: "all 0.3s ease",
 };
 
+// Phase definitions — single source of truth
 const PHASES = {
   menstruation: {
-    label: "Menstruation", short: "Period",
-    color: "#f87171", bg: "#2a1515", emoji: "🩸", icon: "Drop",
-    days: [1, 5], description: "Rest & recharge",
+    label: "Menstruation", short: "Period", key: "menstruation",
+    color: "#f472b6", dim: "rgba(244,114,182,0.12)", bg: "#1f0d17",
+    emoji: "🔴", days: [1, 5], icon: "●",
   },
   follicular: {
-    label: "Follicular", short: "Follicular",
-    color: "#fbbf24", bg: "#2a2010", emoji: "🌱", icon: "Sprout",
-    days: [6, 13], description: "Energy rising",
+    label: "Follicular", short: "Follicular", key: "follicular",
+    color: "#fbbf24", dim: "rgba(251,191,36,0.12)", bg: "#1f1a0a",
+    emoji: "🌱", days: [6, 13], icon: "◐",
   },
   ovulation: {
-    label: "Ovulation", short: "Ovulation",
-    color: "#34d399", bg: "#0f2a1a", emoji: "✨", icon: "Sparkles",
-    days: [14, 16], description: "Peak vitality",
+    label: "Ovulation", short: "Ovulation", key: "ovulation",
+    color: "#34d399", dim: "rgba(52,211,153,0.12)", bg: "#0a1f17",
+    emoji: "⚡", days: [14, 16], icon: "◉",
   },
   luteal: {
-    label: "Luteal", short: "Luteal",
-    color: "#c084fc", bg: "#1a1528", emoji: "🌙", icon: "Moon",
-    days: [17, 28], description: "Wind down",
+    label: "Luteal", short: "Luteal", key: "luteal",
+    color: "#a78bfa", dim: "rgba(167,139,250,0.12)", bg: "#130f1f",
+    emoji: "🌙", days: [17, 28], icon: "◑",
   },
 };
 
-const CYCLE_TIPS = {
-  menstruation: {
-    safe: false, risk: "High Risk",
-    note: "Shedding phase. She may need extra rest and care.",
-    energy: "Low", mood: "Sensitive", libido: "Low",
-  },
-  follicular: {
-    safe: true, risk: "Lower Risk",
-    note: "Estrogen rises — mood and energy improve steadily.",
-    energy: "Building", mood: "Optimistic", libido: "Increasing",
-  },
-  ovulation: {
-    safe: false, risk: "Peak Risk",
-    note: "Most fertile window. Energy and confidence peak.",
-    energy: "Peak", mood: "Confident", libido: "Peak",
-  },
-  luteal: {
-    safe: true, risk: "Lower Risk",
-    note: "Progesterone rises. She may prefer cozy time.",
-    energy: "Declining", mood: "Introspective", libido: "Moderate",
-  },
+const TIPS = {
+  menstruation: { safe: false, risk: "HIGH RISK",  energy: "Low",     mood: "Variable",      libido: "Low",    note: "Active shedding. Avoid unprotected sex. She may feel fatigued and crampy — be extra caring." },
+  follicular:   { safe: true,  risk: "LOWER RISK", energy: "Rising",  mood: "Positive",      libido: "Rising", note: "Rising estrogen boosts mood and energy. Lower pregnancy risk but increases toward ovulation." },
+  ovulation:    { safe: false, risk: "PEAK RISK",  energy: "Peak",    mood: "Flirty/Social", libido: "Peak",   note: "Peak fertility window. Highest pregnancy risk of the entire cycle. Unprotected sex strongly inadvisable." },
+  luteal:       { safe: true,  risk: "LOWER RISK", energy: "Falling", mood: "Introspective", libido: "Medium", note: "Post-ovulation. Progesterone rises — she may feel more emotional, bloated, or withdrawn." },
 };
 
 const SYMPTOMS = [
-  "Cramps", "Bloating", "Mood swings", "Headache", "Fatigue",
-  "Tender breasts", "Spotting", "Back pain", "Nausea",
-  "High libido", "Low libido", "Irritability", "Anxiety",
-  "Clear discharge", "PMS",
+  "Cramps","Bloating","Mood swings","Headache","Fatigue","Tender breasts",
+  "Spotting","Back pain","Nausea","High libido","Low libido","Irritability",
+  "Anxiety","Clear discharge","PMS","Acne","Insomnia","Food cravings",
 ];
 
-const AVATARS = ["🌸", "💜", "🌙", "🦋", "🌺", "✨", "💎", "🌹", "🔮", "🌊", "🍒", "🌷"];
+const AVATARS = ["🌸","💜","🌙","🦋","🌺","✨","💎","🌹","🔮","🌊","🍒","🌷"];
+const CARD_ACCENTS = ["#9b87f5","#fbbf24","#f472b6","#34d399","#60a5fa","#fb923c"];
 
-// ─── Animations & Styling Utilities ───────────────────────────────────────
+// ─── GLOBAL STYLES (injected once) ───────────────────────────────────────────
 
-const animations = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(155, 135, 245, 0); }
-    50% { box-shadow: 0 0 20px 0 rgba(155, 135, 245, 0.3); }
-  }
-  
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
-  }
-  
-  .hover-lift {
-    transition: all 0.3s ${BRAND.animations.spring};
-  }
-  
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
-  }
-  
-  .hover-glow:hover {
-    box-shadow: 0 0 20px ${props => props.color}40;
-  }
-  
-  .fade-in {
-    animation: fadeIn 0.5s ${BRAND.animations.spring};
-  }
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #09090f; color: #f0eeff; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  input, textarea, button { font-family: inherit; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(155,135,245,0.3); border-radius: 2px; }
+
+  @keyframes fadeIn    { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseRing { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.06); opacity: 1; } }
+  @keyframes spin      { to { transform: rotate(360deg); } }
+  @keyframes shimmer   { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes floatBlob { 0%,100% { transform: translate(0,0) rotate(0deg); } 33% { transform: translate(10px,-15px) rotate(3deg); } 66% { transform: translate(-8px,8px) rotate(-2deg); } }
+
+  .fade-in  { animation: fadeIn  0.3s ease both; }
+  .fade-in-1 { animation: fadeIn 0.3s 0.05s ease both; }
+  .fade-in-2 { animation: fadeIn 0.3s 0.10s ease both; }
+  .fade-in-3 { animation: fadeIn 0.3s 0.15s ease both; }
+  .fade-in-4 { animation: fadeIn 0.3s 0.20s ease both; }
+
+  .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important; }
+
+  .btn-hover { transition: all 0.15s ease; }
+  .btn-hover:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  .btn-hover:active:not(:disabled) { transform: translateY(0); filter: brightness(0.95); }
+
+  .tab-btn { transition: all 0.18s ease; }
+  .sym-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+  .sym-btn:hover { filter: brightness(1.1); }
+
+  .input-field { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .input-field:focus { border-color: rgba(155,135,245,0.5) !important; box-shadow: 0 0 0 3px rgba(155,135,245,0.12) !important; }
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function GlobalStyles() {
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.textContent = GLOBAL_CSS;
+    document.head.appendChild(el);
+    return () => document.head.removeChild(el);
+  }, []);
+  return null;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function getDayOfCycle(lastPeriodStart, cycleLength = 28) {
   const diff = Math.floor((new Date() - new Date(lastPeriodStart)) / 86400000);
   return ((diff % cycleLength) + cycleLength) % cycleLength + 1;
 }
-
 function getPhaseFromDay(day) {
   if (day <= 5) return "menstruation";
   if (day <= 13) return "follicular";
   if (day <= 16) return "ovulation";
   return "luteal";
 }
-
-function getNextPeriod(lastPeriodStart, cycleLength = 28) {
-  const start = new Date(lastPeriodStart);
-  const today = new Date();
-  let next = new Date(start);
-  while (next <= today) next.setDate(next.getDate() + cycleLength);
-  return next;
+function getNextPeriod(lps, cl = 28) {
+  let n = new Date(lps);
+  const t = new Date();
+  while (n <= t) n.setDate(n.getDate() + cl);
+  return n;
 }
-
-function getOvulation(lastPeriodStart, cycleLength = 28) {
-  const start = new Date(lastPeriodStart);
-  const today = new Date();
-  let ov = new Date(start);
-  ov.setDate(ov.getDate() + 13);
-  while (ov < today) ov.setDate(ov.getDate() + cycleLength);
-  return ov;
+function getOvulation(lps, cl = 28) {
+  let o = new Date(lps);
+  o.setDate(o.getDate() + 13);
+  const t = new Date();
+  while (o < t) o.setDate(o.getDate() + cl);
+  return o;
 }
+function daysUntil(d) { return Math.ceil((new Date(d) - new Date()) / 86400000); }
+function fmtDate(d)   { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function todayStr()   { return new Date().toISOString().split("T")[0]; }
 
-function daysUntil(d) {
-  return Math.ceil((new Date(d) - new Date()) / 86400000);
-}
+// ─── REUSABLE PRIMITIVES ──────────────────────────────────────────────────────
 
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function todayStr() {
-  return new Date().toISOString().split("T")[0];
-}
-
-// ─── Professional Icons Component ───────────────────────────────────────────
-
-const Icons = {
-  Drop: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M12 2.5L12 21M12 2.5L8 6.5M12 2.5L16 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M12 21C8.5 21 5.5 18 5.5 14.5C5.5 11 8.5 8 12 8C15.5 8 18.5 11 18.5 14.5C18.5 18 15.5 21 12 21Z" stroke="currentColor" strokeWidth="1.5"/>
-    </svg>
-  ),
-  Sprout: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M12 22V12M12 12C12 8 15 5 19 5C19 9 16 12 12 12ZM12 12C12 8 9 5 5 5C5 9 8 12 12 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  ),
-  Sparkles: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M12 3L13.5 9L18 10.5L13.5 12L12 18L10.5 12L6 10.5L10.5 9L12 3Z" fill="currentColor" fillOpacity="0.8"/>
-      <path d="M19 14L20 17L23 18L20 19L19 22L18 19L15 18L18 17L19 14Z" fill="currentColor" fillOpacity="0.6"/>
-      <path d="M5 2L5.5 4L7 4.5L5.5 5L5 7L4.5 5L3 4.5L4.5 4L5 2Z" fill="currentColor" fillOpacity="0.6"/>
-    </svg>
-  ),
-  Moon: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M21 12.5C21 16.5 18 20 13 20C8 20 4 16 4 11C4 6 7.5 3 11.5 3C12 3 12 3 12 3C10 6 10.5 9.5 13 12C15.5 14.5 19 15 21 12.5Z" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
-    </svg>
-  ),
-  Calendar: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M3 9H21" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M8 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M16 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  ),
-  Heart: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M12 21C12 21 4 16 4 10C4 6.5 7 4 10 4C12 4 14 5.5 15 7C16 5.5 18 4 20 4C23 4 24 6.5 24 10C24 16 16 21 16 21" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
-    </svg>
-  ),
-  Chart: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M3 3V21H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M7 17L11 11L15 14L21 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  ),
-  Settings: (props) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M19.4 15C18.9 16 18.1 16.7 17.2 17.2L19 20.6L15.8 19.2C14.9 19.7 13.9 20 12.9 20L12 23.5L11.1 20C10.1 19.9 9.1 19.6 8.2 19.2L5 20.6L6.8 17.2C5.9 16.7 5.1 16 4.6 15L1.5 14L4.6 12.5C4.5 11.8 4.5 11.2 4.6 10.5L1.5 9L4.6 7.5C5.1 6.5 5.9 5.8 6.8 5.3L5 2L8.2 3.5C9.1 3 10.1 2.7 11.1 2.5L12 -1L12.9 2.5C13.9 2.7 14.9 3 15.8 3.5L19 2L17.2 5.3C18.1 5.8 18.9 6.5 19.4 7.5L22.5 9L19.4 10.5C19.5 11.2 19.5 11.8 19.4 12.5L22.5 14L19.4 15Z" stroke="currentColor" strokeWidth="1.5"/>
-    </svg>
-  ),
-};
-
-// ─── Background Decor with Animation ───────────────────────────────────────
-
-function BgDecor({ phase }) {
-  const c = PHASES[phase || "luteal"].color;
-  
-  return (
-    <div style={{ 
-      position: "fixed", 
-      inset: 0, 
-      overflow: "hidden", 
-      pointerEvents: "none", 
-      zIndex: 0,
-      opacity: 0.3,
-    }}>
-      <div style={{
-        position: "absolute", top: -100, right: -100, width: 400, height: 400,
-        borderRadius: "60% 40% 55% 45% / 45% 55% 40% 60%",
-        background: `radial-gradient(circle at 30% 30%, ${c}, transparent 70%)`,
-        animation: "float 8s infinite ease-in-out",
-      }} />
-      <div style={{
-        position: "absolute", bottom: 50, left: -80, width: 300, height: 300,
-        borderRadius: "50%",
-        background: `radial-gradient(circle at 70% 70%, ${c}40, transparent 70%)`,
-        animation: "float 12s infinite ease-in-out reverse",
-      }} />
-    </div>
-  );
-}
-
-// ─── Card Component with Hover Effects ─────────────────────────────────────
-
-function Card({ children, color, onClick, className = "", style = {} }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
+function Card({ children, style = {}, className = "", onClick }) {
   return (
     <div
-      className={`hover-lift ${className}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`card-hover ${className}`}
       onClick={onClick}
       style={{
-        background: BRAND.colors.surface,
-        border: `1px solid ${color || PHASES.luteal.color}30`,
-        borderRadius: 24,
+        background: B.card,
+        border: `1px solid ${B.border}`,
+        borderRadius: B.r.xl,
         padding: 20,
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        boxShadow: B.shadow.card,
         cursor: onClick ? "pointer" : "default",
-        transform: isHovered && onClick ? "translateY(-4px)" : "translateY(0)",
-        boxShadow: isHovered && onClick ? `0 20px 30px -10px ${color || PHASES.luteal.color}30` : "0 10px 20px -5px rgba(0,0,0,0.3)",
         ...style,
       }}
     >
@@ -270,1494 +178,975 @@ function Card({ children, color, onClick, className = "", style = {} }) {
   );
 }
 
-// ─── Button Component ─────────────────────────────────────────────────────
-
-function Button({ children, variant = "primary", onClick, disabled, icon, fullWidth, style = {} }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
-  const variants = {
-    primary: {
-      background: BRAND.colors.primary,
-      color: "#ffffff",
-      border: "none",
-      hoverBg: "#8a75f0",
-    },
-    secondary: {
-      background: "transparent",
-      color: BRAND.colors.text,
-      border: `1px solid ${BRAND.colors.primary}40`,
-      hoverBg: `${BRAND.colors.primary}10`,
-    },
-    accent: {
-      background: BRAND.colors.secondary,
-      color: "#1a1a2e",
-      border: "none",
-      hoverBg: "#f594c4",
-    },
-    danger: {
-      background: "rgba(248, 113, 113, 0.1)",
-      color: "#f87171",
-      border: "1px solid #f8717140",
-      hoverBg: "rgba(248, 113, 113, 0.2)",
-    },
+function Btn({ children, onClick, variant = "primary", color, disabled, style = {}, className = "" }) {
+  const base = {
+    border: "none", borderRadius: B.r.pill, fontWeight: 700,
+    cursor: disabled ? "not-allowed" : "pointer", fontFamily: B.sans,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+    transition: B.tx, opacity: disabled ? 0.45 : 1,
+    padding: "10px 20px", fontSize: 13,
   };
-  
-  const v = variants[variant];
-  
+  const c = color || B.lavender;
+  const variants = {
+    primary:  { background: c, color: "#0d0d1a", boxShadow: B.shadow.btn(c) },
+    secondary:{ background: "rgba(255,255,255,0.07)", color: B.textSecondary, border: `1px solid ${B.border}` },
+    ghost:    { background: "transparent", color: B.textMuted, border: `1px solid ${B.border}` },
+    danger:   { background: "rgba(244,114,182,0.15)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.3)" },
+  };
   return (
     <button
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        padding: "10px 20px",
-        borderRadius: 40,
-        fontSize: 14,
-        fontWeight: 600,
-        fontFamily: BRAND.fonts.body,
-        cursor: disabled ? "default" : "pointer",
-        transition: "all 0.2s ease",
-        background: isHovered && !disabled ? v.hoverBg : v.background,
-        color: v.color,
-        border: v.border,
-        opacity: disabled ? 0.4 : 1,
-        width: fullWidth ? "100%" : "auto",
-        ...style,
-      }}
+      onClick={disabled ? undefined : onClick}
+      className={`btn-hover ${className}`}
+      style={{ ...base, ...variants[variant], ...style }}
     >
-      {icon && <span style={{ display: "flex", alignItems: "center" }}>{icon}</span>}
       {children}
     </button>
   );
 }
 
-// ─── AI Insight with Animation ───────────────────────────────────────────────
-
-function AIInsight({ profile }) {
-  const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
-  const phase = getPhaseFromDay(day);
-  const PD = PHASES[phase];
-
-  const generate = useCallback(async () => {
-    setLoading(true);
-    setText("");
-    const symptoms = (profile.symptoms || []).join(", ") || "none";
-    const sessions = (profile.intimacyLog || []).length;
-    const nextPeriodDays = daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength));
-    const nextOvDays = daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength));
-
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
-      setText(`✨ Day ${day} of her cycle. ${symptoms ? `She's experiencing ${symptoms}. ` : ''}Energy is ${CYCLE_TIPS[phase].energy.toLowerCase()}. ${CYCLE_TIPS[phase].safe ? '✅ Safe for unprotected intimacy.' : '⚠️ Caution - fertile window.'}`);
-      setLoading(false);
-      setIsVisible(true);
-    }, 1000);
-  }, [profile, day, phase]);
-
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => setIsVisible(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible]);
-
+function Label({ children, style = {} }) {
   return (
-    <Card color={PD.color} style={{ marginTop: 16, position: "relative", overflow: "hidden" }}>
-      {isVisible && (
-        <div style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: `linear-gradient(90deg, ${PD.color}, ${BRAND.colors.secondary})`,
-          animation: "pulseGlow 2s infinite",
-        }} />
-      )}
-      
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ 
-          fontSize: 12, 
-          fontWeight: 600, 
-          letterSpacing: 1, 
-          color: BRAND.colors.textMuted,
-          textTransform: "uppercase",
-        }}>
-          ✦ AI Insight
-        </span>
-        <Button
-          variant="secondary"
-          onClick={generate}
-          disabled={loading}
-          size="small"
-          style={{ padding: "6px 16px" }}
-        >
-          {loading ? "Thinking..." : "Generate"}
-        </Button>
-      </div>
-      
-      <div style={{
-        minHeight: 60,
-        transition: "all 0.3s ease",
-      }}>
-        {text ? (
-          <p style={{ 
-            fontSize: 14, 
-            color: BRAND.colors.textSoft, 
-            lineHeight: 1.6, 
-            margin: 0,
-            animation: "fadeIn 0.5s ease",
-          }}>
-            {text}
-          </p>
-        ) : (
-          <p style={{ 
-            fontSize: 13, 
-            color: BRAND.colors.textMuted, 
-            margin: 0, 
-            fontStyle: "italic" 
-          }}>
-            Tap Generate for personalized cycle insights
-          </p>
-        )}
-      </div>
-    </Card>
+    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: B.textMuted, textTransform: "uppercase", marginBottom: 8, ...style }}>
+      {children}
+    </div>
   );
 }
 
-// ─── Cycle Ring with Animation ───────────────────────────────────────────────
+function Divider() {
+  return <div style={{ height: 1, background: B.border, margin: "16px 0" }} />;
+}
 
-function CycleRing({ day, cycleLength, size = 180 }) {
+function Spinner({ color = B.lavender }) {
+  return (
+    <div style={{
+      width: 14, height: 14, borderRadius: "50%",
+      border: `2px solid ${color}40`,
+      borderTopColor: color,
+      animation: "spin 0.7s linear infinite",
+      display: "inline-block",
+    }} />
+  );
+}
+
+// ─── BACKGROUND DECOR ─────────────────────────────────────────────────────────
+
+function BgDecor({ phase }) {
+  const c = PHASES[phase || "luteal"].color;
+  return (
+    <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      <div style={{
+        position: "absolute", top: -120, right: -100, width: 400, height: 400,
+        borderRadius: "60% 40% 55% 45% / 45% 55% 40% 60%",
+        background: c + "14", animation: "floatBlob 14s ease-in-out infinite",
+      }} />
+      <div style={{
+        position: "absolute", bottom: 80, left: -80, width: 280, height: 280,
+        borderRadius: "50% 60% 40% 55%", background: B.lavender + "0a",
+        animation: "floatBlob 18s ease-in-out infinite reverse",
+      }} />
+      <div style={{
+        position: "absolute", top: "40%", right: "8%", width: 120, height: 120,
+        borderRadius: "50%", background: c + "08",
+        animation: "floatBlob 22s ease-in-out infinite 5s",
+      }} />
+      {/* Subtle grid */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: `radial-gradient(circle, rgba(155,135,245,0.04) 1px, transparent 1px)`,
+        backgroundSize: "32px 32px",
+      }} />
+    </div>
+  );
+}
+
+// ─── CYCLE RING ───────────────────────────────────────────────────────────────
+
+function CycleRing({ day, cycleLength, size = 200, glowing = false }) {
   const cx = size / 2, cy = size / 2;
-  const r = size * 0.36;
-  const strokeW = size * 0.1;
+  const r = size * 0.35, strokeW = size * 0.09;
   const circ = 2 * Math.PI * r;
   const phase = getPhaseFromDay(day);
-  const [animate, setAnimate] = useState(false);
 
-  useEffect(() => {
-    setAnimate(true);
-    const timer = setTimeout(() => setAnimate(false), 1000);
-    return () => clearTimeout(timer);
-  }, [day]);
-
-  const segments = [
-    { name: "menstruation", start: 0,  end: 5,           color: "#f87171" },
-    { name: "follicular",   start: 5,  end: 13,          color: "#fbbf24" },
-    { name: "ovulation",    start: 13, end: 16,          color: "#34d399" },
-    { name: "luteal",       start: 16, end: cycleLength,  color: "#c084fc" },
+  const segs = [
+    { key: "menstruation", start: 0,  end: 5,          color: "#f472b6" },
+    { key: "follicular",   start: 5,  end: 13,         color: "#fbbf24" },
+    { key: "ovulation",    start: 13, end: 16,         color: "#34d399" },
+    { key: "luteal",       start: 16, end: cycleLength, color: "#a78bfa" },
   ];
 
-  function segProps(startDay, endDay) {
-    const startAngle = (startDay / cycleLength) * 2 * Math.PI - Math.PI / 2;
-    const portion = (endDay - startDay) / cycleLength;
-    const dashLen = portion * circ - 3;
-    const offset = -(startAngle / (2 * Math.PI)) * circ;
-    return { dashLen, gap: circ - dashLen, offset };
+  function sp(s, e) {
+    const sa = (s / cycleLength) * 2 * Math.PI - Math.PI / 2;
+    const dl = ((e - s) / cycleLength) * circ - 4;
+    const off = -(sa / (2 * Math.PI)) * circ;
+    return { dl, gap: circ - dl, off };
   }
 
-  const dotAngle = ((day - 1) / cycleLength) * 2 * Math.PI - Math.PI / 2;
-  const dotX = cx + r * Math.cos(dotAngle);
-  const dotY = cy + r * Math.sin(dotAngle);
+  const da = ((day - 1) / cycleLength) * 2 * Math.PI - Math.PI / 2;
+  const dx = cx + r * Math.cos(da), dy = cy + r * Math.sin(da);
+  const curColor = PHASES[phase].color;
 
   return (
-    <svg width={size} height={size} style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.3))" }}>
-      <style>{`
-        @keyframes rotateIn {
-          from { transform: rotate(-90deg) scale(0.8); opacity: 0; }
-          to { transform: rotate(0) scale(1); opacity: 1; }
-        }
-        .ring-segment {
-          transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .ring-dot {
-          transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-      `}</style>
-      
+    <svg width={size} height={size} style={{ overflow: "visible" }}>
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
       {/* Track */}
-      <circle 
-        cx={cx} cy={cy} r={r} 
-        fill="none" 
-        stroke="rgba(255,255,255,0.06)" 
-        strokeWidth={strokeW} 
-      />
-      
-      {/* Phase segments */}
-      {segments.map(seg => {
-        const { dashLen, gap, offset } = segProps(seg.start, seg.end);
-        const isCurrent = phase === seg.name;
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeW} />
+      {/* Segments */}
+      {segs.map(seg => {
+        const { dl, gap, off } = sp(seg.start, seg.end);
+        const cur = phase === seg.key;
         return (
-          <circle
-            key={seg.name}
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke={seg.color}
-            strokeWidth={strokeW}
-            strokeDasharray={`${dashLen} ${gap}`}
-            strokeDashoffset={animate && isCurrent ? offset + 10 : offset}
-            strokeLinecap="round"
-            opacity={isCurrent ? 1 : 0.2}
-            className="ring-segment"
-            style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
+          <circle key={seg.key} cx={cx} cy={cy} r={r} fill="none"
+            stroke={seg.color} strokeWidth={cur ? strokeW + 2 : strokeW}
+            strokeDasharray={`${dl} ${gap}`} strokeDashoffset={off}
+            strokeLinecap="round" opacity={cur ? 1 : 0.18}
+            filter={cur && glowing ? "url(#glow)" : undefined}
           />
         );
       })}
-      
-      {/* Current day dot */}
-      <circle 
-        cx={dotX} cy={dotY} r={size * 0.055} 
-        fill="white" 
-        className="ring-dot"
-        style={{
-          transition: "all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-          filter: "drop-shadow(0 0 10px white)",
-        }}
-      />
-      <circle 
-        cx={dotX} cy={dotY} r={size * 0.03} 
-        fill={PHASES[phase].color}
-        className="ring-dot"
-      />
-      
-      {/* Center text */}
-      <text x={cx} y={cy - 8} textAnchor="middle" fill="white" fontSize={size * 0.16} fontWeight={700} fontFamily={BRAND.fonts.heading}>{day}</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fill={BRAND.colors.textMuted} fontSize={size * 0.07} fontFamily={BRAND.fonts.body}>of {cycleLength}</text>
-      <text x={cx} y={cy + 26} textAnchor="middle" fill={PHASES[phase].color} fontSize={size * 0.075} fontWeight={600} fontFamily={BRAND.fonts.body}>{PHASES[phase].short}</text>
+      {/* Day dot */}
+      <circle cx={dx} cy={dy} r={size * 0.06} fill="white" />
+      <circle cx={dx} cy={dy} r={size * 0.035} fill={curColor} />
+      {/* Center */}
+      <text x={cx} y={cy - 10} textAnchor="middle" fill={B.textPrimary}
+        fontSize={size * 0.15} fontWeight={800} fontFamily={B.serif}>{day}</text>
+      <text x={cx} y={cy + 8} textAnchor="middle" fill={B.textMuted}
+        fontSize={size * 0.065} fontFamily={B.sans}>of {cycleLength}</text>
+      <text x={cx} y={cy + 26} textAnchor="middle" fill={curColor}
+        fontSize={size * 0.072} fontWeight={700} fontFamily={B.sans}>{PHASES[phase].short}</text>
     </svg>
   );
 }
 
-// ─── Month Calendar ───────────────────────────────────────────────────────────
+// ─── MONTH CALENDAR ───────────────────────────────────────────────────────────
 
 function MonthCalendar({ profile, monthOffset = 0 }) {
   const base = new Date();
   base.setMonth(base.getMonth() + monthOffset);
-  const year = base.getFullYear();
-  const month = base.getMonth();
+  const year = base.getFullYear(), month = base.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  const isThisMonth = today.getFullYear() === year && today.getMonth() === month;
 
   function phaseForDay(d) {
     const date = new Date(year, month, d);
-    const start = new Date(profile.lastPeriodStart);
-    const diff = Math.floor((date - start) / 86400000);
-    const cycleDay = ((diff % profile.cycleLength) + profile.cycleLength) % profile.cycleLength + 1;
-    return getPhaseFromDay(cycleDay);
+    const diff = Math.floor((date - new Date(profile.lastPeriodStart)) / 86400000);
+    const cd = ((diff % profile.cycleLength) + profile.cycleLength) % profile.cycleLength + 1;
+    return getPhaseFromDay(cd);
   }
 
-  function isIntimacyDay(d) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    return (profile.intimacyLog || []).includes(dateStr);
+  function isIntimacy(d) {
+    const s = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return (profile.intimacyLog || []).includes(s);
   }
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
-        {["S", "M", "T", "W", "T", "F", "S"].map(d => (
-          <div key={d} style={{ 
-            textAlign: "center", 
-            fontSize: 12, 
-            color: BRAND.colors.textMuted, 
-            fontWeight: 500,
-            padding: "4px 0",
-          }}>
-            {d}
-          </div>
+      {/* Day headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 6 }}>
+        {["S","M","T","W","T","F","S"].map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 600, color: B.textMuted, padding: "3px 0" }}>{d}</div>
         ))}
       </div>
-      
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-        {Array(firstDay).fill(null).map((_, i) => (
-          <div key={"empty" + i} style={{ aspectRatio: "1" }} />
-        ))}
-        
+      {/* Days grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+        {Array(firstDay).fill(null).map((_, i) => <div key={"e" + i} />)}
         {Array(daysInMonth).fill(null).map((_, i) => {
           const d = i + 1;
           const ph = phaseForDay(d);
           const col = PHASES[ph].color;
-          const isToday = isCurrentMonth && d === today.getDate();
-          const hasIntimacy = isIntimacyDay(d);
-          const [isHovered, setIsHovered] = useState(false);
-          
+          const isToday = isThisMonth && d === today.getDate();
+          const hasI = isIntimacy(d);
           return (
-            <div
-              key={d}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              style={{
-                aspectRatio: "1",
-                borderRadius: 12,
-                position: "relative",
-                background: isToday ? `linear-gradient(135deg, ${col}, ${col}80)` : `${col}15`,
-                border: `1px solid ${isToday ? col : col}30`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transform: isHovered ? "scale(1.1)" : "scale(1)",
-                transition: "all 0.2s ease",
-                cursor: "pointer",
-                boxShadow: isHovered ? `0 5px 15px ${col}40` : "none",
-                zIndex: isHovered ? 2 : 1,
-              }}
-            >
-              <span style={{ 
-                fontSize: 13, 
-                color: isToday ? "#111" : BRAND.colors.textSoft, 
-                fontWeight: isToday ? 700 : 400,
-              }}>
-                {d}
-              </span>
-              {hasIntimacy && (
-                <span style={{ 
-                  position: "absolute", 
-                  bottom: 2, 
-                  right: 2, 
-                  fontSize: 8,
-                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-                }}>
-                  ❤️
-                </span>
-              )}
+            <div key={d} style={{
+              aspectRatio: "1", borderRadius: 8, position: "relative",
+              background: isToday ? col : col + "1a",
+              border: `1px solid ${isToday ? col : col + "35"}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: isToday ? `0 0 12px ${col}50` : "none",
+            }}>
+              <span style={{ fontSize: 10, color: isToday ? "#111" : B.textSecondary, fontWeight: isToday ? 700 : 400 }}>{d}</span>
+              {hasI && <span style={{ position: "absolute", top: 1, right: 1, fontSize: 6, lineHeight: 1 }}>💕</span>}
             </div>
           );
         })}
+      </div>
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: `1px solid ${B.border}` }}>
+        {Object.values(PHASES).map(v => (
+          <div key={v.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: v.color }} />
+            <span style={{ fontSize: 10, color: B.textMuted }}>{v.short}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 10 }}>💕</span>
+          <span style={{ fontSize: 10, color: B.textMuted }}>Intimacy</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Profile Detail ───────────────────────────────────────────────────────────
+// ─── AI INSIGHT ───────────────────────────────────────────────────────────────
+
+function AIInsight({ profile }) {
+  const [text, setText]       = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(false);
+
+  const day   = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
+  const phase = getPhaseFromDay(day);
+  const PD    = PHASES[phase];
+
+  const generate = useCallback(async () => {
+    setLoading(true); setText(""); setError(false);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 300,
+          system: "You are a frank reproductive health advisor. Give concise insights under 90 words. Be direct and plain. Start with one relevant emoji. End with either ✅ Safe or ⚠️ Caution for unprotected sex.",
+          messages: [{
+            role: "user",
+            content: `Partner: ${profile.name}. Cycle day ${day} of ${profile.cycleLength} (${phase}). Symptoms: ${(profile.symptoms||[]).join(", ")||"none"}. Sessions: ${(profile.intimacyLog||[]).length}. Period in: ${daysUntil(getNextPeriod(profile.lastPeriodStart,profile.cycleLength))}d. Ovulation in: ${daysUntil(getOvulation(profile.lastPeriodStart,profile.cycleLength))}d. Give insight.`,
+          }],
+        }),
+      });
+      const d = await res.json();
+      setText(d.content?.[0]?.text || "Could not generate insight.");
+    } catch {
+      setError(true);
+      setText("AI unavailable. Check your connection and try again.");
+    }
+    setLoading(false);
+  }, [profile, day, phase]);
+
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${PD.color}0d, ${B.card})`,
+      border: `1px solid ${PD.color}30`,
+      borderRadius: B.r.xl, padding: 20, marginTop: 4,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: PD.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>✦</div>
+          <Label style={{ marginBottom: 0, color: PD.color }}>AI Insight</Label>
+        </div>
+        <Btn
+          onClick={generate}
+          disabled={loading}
+          color={PD.color}
+          style={{ padding: "6px 16px", fontSize: 12 }}
+        >
+          {loading ? <><Spinner color="#0d0d1a" /> Thinking…</> : "Generate"}
+        </Btn>
+      </div>
+      {text ? (
+        <p style={{ fontSize: 13, color: error ? "#f472b6" : B.textSecondary, lineHeight: 1.75, margin: 0 }}>{text}</p>
+      ) : (
+        <p style={{ fontSize: 12, color: B.textMuted, margin: 0, fontStyle: "italic", lineHeight: 1.6 }}>
+          Generate a personalized AI insight based on her current cycle phase, symptoms, and history.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── PROFILE DETAIL ───────────────────────────────────────────────────────────
 
 function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
-  const [tab, setTab] = useState("overview");
-  const [monthOffset, setMonthOffset] = useState(0);
-  const [editingSymptoms, setEditingSymptoms] = useState(false);
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [logDate, setLogDate] = useState(todayStr());
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [animateHeader, setAnimateHeader] = useState(false);
+  const [tab,           setTab]           = useState("overview");
+  const [monthOffset,   setMonthOffset]   = useState(0);
+  const [editSym,       setEditSym]       = useState(false);
+  const [showLogModal,  setShowLogModal]  = useState(false);
+  const [logDate,       setLogDate]       = useState(todayStr());
+  const [showDelModal,  setShowDelModal]  = useState(false);
+  const [periodFlash,   setPeriodFlash]   = useState(false);
 
-  const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
-  const phase = getPhaseFromDay(day);
-  const PD = PHASES[phase];
-  const tips = CYCLE_TIPS[phase];
-  const nextPeriod = getNextPeriod(profile.lastPeriodStart, profile.cycleLength);
-  const nextOvulation = getOvulation(profile.lastPeriodStart, profile.cycleLength);
-  const daysToNextPeriod = daysUntil(nextPeriod);
-  const daysToOvulation = daysUntil(nextOvulation);
+  const day    = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
+  const phase  = getPhaseFromDay(day);
+  const PD     = PHASES[phase];
+  const tips   = TIPS[phase];
+  const nextP  = getNextPeriod(profile.lastPeriodStart, profile.cycleLength);
+  const nextO  = getOvulation(profile.lastPeriodStart, profile.cycleLength);
+  const dToP   = daysUntil(nextP);
+  const dToO   = daysUntil(nextO);
 
-  useEffect(() => {
-    setAnimateHeader(true);
-    const timer = setTimeout(() => setAnimateHeader(false), 500);
-    return () => clearTimeout(timer);
-  }, [phase]);
+  const calLabel = (() => {
+    const b = new Date(); b.setMonth(b.getMonth() + monthOffset);
+    return b.toLocaleString("default", { month: "long", year: "numeric" });
+  })();
+
+  function toggleSym(s) {
+    const cur = profile.symptoms || [];
+    onUpdate({ ...profile, symptoms: cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s] });
+  }
+  function logIntimacy() {
+    const cur = profile.intimacyLog || [];
+    if (!cur.includes(logDate)) onUpdate({ ...profile, intimacyLog: [...cur, logDate].sort() });
+    setShowLogModal(false);
+  }
+  function removeIntimacy(d) {
+    onUpdate({ ...profile, intimacyLog: (profile.intimacyLog || []).filter(x => x !== d) });
+  }
+  function markPeriodToday() {
+    onUpdate({ ...profile, lastPeriodStart: todayStr() });
+    setPeriodFlash(true);
+    setTimeout(() => setPeriodFlash(false), 2000);
+  }
+
+  const inputStyle = {
+    width: "100%", background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${B.border}`, borderRadius: B.r.md,
+    padding: "12px 16px", color: B.textPrimary, fontSize: 14,
+    outline: "none", display: "block",
+  };
 
   const tabs = [
-    { id: "overview", label: "Overview", icon: <Icons.Chart /> },
-    { id: "calendar", label: "Calendar", icon: <Icons.Calendar /> },
-    { id: "insights", label: "Insights", icon: <Icons.Sparkles /> },
+    { id: "overview", label: "Overview" },
+    { id: "calendar", label: "Calendar" },
+    { id: "log",      label: "Log"      },
+    { id: "insights", label: "Insights" },
   ];
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: BRAND.colors.background, 
-      color: BRAND.colors.text, 
-      fontFamily: BRAND.fonts.body,
-      position: "relative",
-    }}>
-      <style>{animations}</style>
+    <div style={{ minHeight: "100vh", background: B.bg, color: B.textPrimary, fontFamily: B.sans }}>
       <BgDecor phase={phase} />
-      
-      <div style={{ 
-        position: "relative", 
-        zIndex: 2, 
-        maxWidth: 480, 
-        margin: "0 auto", 
-        padding: "0 16px 80px",
-        animation: "fadeIn 0.5s ease",
-      }}>
+      <div style={{ position: "relative", zIndex: 2, maxWidth: 500, margin: "0 auto", padding: "0 18px 100px" }}>
 
-        {/* Top bar */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
-          padding: "20px 0 16px",
-          animation: "fadeIn 0.5s ease",
-        }}>
-          <Button variant="secondary" onClick={onBack} icon="←">
-            Back
-          </Button>
-          
+        {/* ── TOP BAR ── */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px", gap: 8 }}>
+          <Btn variant="secondary" onClick={onBack} style={{ padding: "8px 16px", fontSize: 13 }}>← Back</Btn>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button 
-              variant="secondary" 
-              onClick={() => onUpdate({ ...profile, hidden: !profile.hidden })}
-              style={{ padding: "8px 14px" }}
-            >
+            <Btn variant="secondary" onClick={() => onUpdate({ ...profile, hidden: !profile.hidden })} style={{ padding: "8px 14px", fontSize: 12 }}>
               {profile.hidden ? "👁 Show" : "🙈 Hide"}
-            </Button>
-            <Button 
-              variant="danger" 
-              onClick={() => setShowDeleteConfirm(true)}
-              style={{ padding: "8px 14px" }}
-            >
+            </Btn>
+            <Btn variant="danger" onClick={() => setShowDelModal(true)} style={{ padding: "8px 14px", fontSize: 12 }}>
               🗑 Delete
-            </Button>
+            </Btn>
           </div>
         </div>
 
-        {/* Hero card */}
-        <Card 
-          color={PD.color} 
-          style={{ 
-            marginBottom: 20,
-            transform: animateHeader ? "scale(1.02)" : "scale(1)",
-            transition: "transform 0.3s ease",
-          }}
-        >
-          <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20 }}>
+        {/* ── HERO CARD ── */}
+        <div className="fade-in" style={{ position: "relative", marginBottom: 16 }}>
+          {/* Floating accent blob */}
+          <div style={{ position: "absolute", top: -20, right: -20, width: 140, height: 140, borderRadius: "60% 40% 55% 45%", background: PD.color + "18", pointerEvents: "none", zIndex: -1 }} />
+          <Card style={{ border: `1px solid ${PD.color}30`, background: `linear-gradient(135deg, ${PD.bg}, ${B.card})`, padding: 22, marginBottom: 0 }}>
+            {/* Name row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+              <div style={{
+                width: 68, height: 68, borderRadius: 20, flexShrink: 0,
+                background: `linear-gradient(135deg, ${PD.color}33, ${PD.color}11)`,
+                border: `2px solid ${PD.color}44`,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30,
+              }}>{profile.avatar}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2 style={{ fontFamily: B.serif, fontSize: 24, fontWeight: 700, margin: "0 0 6px", color: B.textPrimary, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {profile.name}
+                </h2>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: PD.color + "1a", borderRadius: B.r.pill, padding: "4px 12px", border: `1px solid ${PD.color}30` }}>
+                  <span style={{ fontSize: 11 }}>{PD.emoji}</span>
+                  <span style={{ fontSize: 12, color: PD.color, fontWeight: 600 }}>{PD.label} · Day {day} of {profile.cycleLength}</span>
+                </div>
+              </div>
+              <CycleRing day={day} cycleLength={profile.cycleLength} size={76} />
+            </div>
+
+            {/* Risk banner */}
             <div style={{
-              width: 72, height: 72, borderRadius: 24,
-              background: `linear-gradient(135deg, ${PD.color}40, ${PD.color}10)`,
-              border: `2px solid ${PD.color}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 32, flexShrink: 0,
-              transition: "all 0.3s ease",
-              boxShadow: `0 10px 20px ${PD.color}30`,
+              background: tips.safe ? "rgba(52,211,153,0.08)" : "rgba(244,114,182,0.08)",
+              border: `1px solid ${tips.safe ? "#34d39940" : "#f472b640"}`,
+              borderRadius: B.r.lg, padding: "12px 16px",
+              display: "flex", gap: 12, alignItems: "flex-start",
             }}>
-              {profile.avatar}
-            </div>
-            
-            <div style={{ flex: 1 }}>
-              <h2 style={{ 
-                margin: "0 0 6px", 
-                fontSize: 28, 
-                fontWeight: 700, 
-                fontFamily: BRAND.fonts.heading,
-                color: BRAND.colors.text,
-              }}>
-                {profile.name}
-              </h2>
-              <div style={{ 
-                display: "inline-flex", 
-                alignItems: "center", 
-                gap: 6, 
-                background: `${PD.color}20`,
-                borderRadius: 30, 
-                padding: "6px 14px",
-                border: `1px solid ${PD.color}40`,
-              }}>
-                <span style={{ fontSize: 14 }}>{PD.emoji}</span>
-                <span style={{ fontSize: 13, color: PD.color, fontWeight: 600 }}>
-                  {PD.label} · Day {day}
-                </span>
+              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.4 }}>{tips.safe ? "✅" : "⚠️"}</span>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, color: tips.safe ? "#34d399" : "#f472b6", marginBottom: 4 }}>
+                  {tips.risk}
+                </div>
+                <div style={{ fontSize: 12, color: B.textSecondary, lineHeight: 1.65 }}>{tips.note}</div>
               </div>
             </div>
-            
-            <CycleRing day={day} cycleLength={profile.cycleLength} size={80} />
-          </div>
-
-          {/* Risk banner */}
-          <div style={{
-            background: tips.safe ? `${BRAND.colors.accent}15` : `${PD.color}15`,
-            border: `1px solid ${tips.safe ? BRAND.colors.accent : PD.color}40`,
-            borderRadius: 16,
-            padding: "14px 18px",
-            display: "flex",
-            gap: 12,
-            alignItems: "flex-start",
-          }}>
-            <span style={{ fontSize: 24 }}>{tips.safe ? "✅" : "⚠️"}</span>
-            <div>
-              <div style={{ 
-                fontSize: 12, 
-                fontWeight: 700, 
-                color: tips.safe ? BRAND.colors.accent : PD.color,
-                marginBottom: 4,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}>
-                {tips.risk}
-              </div>
-              <div style={{ 
-                fontSize: 13, 
-                color: BRAND.colors.textMuted, 
-                lineHeight: 1.6 
-              }}>
-                {tips.note}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Tabs */}
-        <div style={{ 
-          display: "flex", 
-          background: `${BRAND.colors.surface}80`,
-          borderRadius: 40, 
-          padding: 4, 
-          marginBottom: 20,
-          backdropFilter: "blur(10px)",
-          border: `1px solid ${BRAND.colors.primary}20`,
-        }}>
-          {tabs.map(t => {
-            const isActive = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  flex: 1,
-                  border: "none",
-                  borderRadius: 36,
-                  padding: "10px",
-                  background: isActive ? `linear-gradient(135deg, ${PD.color}, ${PD.color}cc)` : "transparent",
-                  color: isActive ? "#ffffff" : BRAND.colors.textMuted,
-                  fontSize: 13,
-                  fontWeight: isActive ? 600 : 400,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ width: 18, height: 18 }}>{t.icon}</span>
-                {t.label}
-              </button>
-            );
-          })}
+          </Card>
         </div>
 
-        {/* Tab Content */}
+        {/* ── TABS ── */}
+        <div className="fade-in-1" style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: B.r.pill, padding: 4, marginBottom: 20, border: `1px solid ${B.border}`, gap: 2 }}>
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="tab-btn"
+              style={{
+                flex: 1, border: "none", borderRadius: B.r.pill, padding: "9px 4px",
+                background: tab === t.id ? PD.color : "transparent",
+                color: tab === t.id ? "#111" : B.textMuted,
+                fontSize: 12, fontWeight: tab === t.id ? 700 : 500,
+                cursor: "pointer", fontFamily: B.sans,
+                boxShadow: tab === t.id ? `0 2px 10px ${PD.color}40` : "none",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ═════════════ OVERVIEW ═════════════ */}
         {tab === "overview" && (
           <div className="fade-in">
             {/* Cycle ring */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-              <CycleRing day={day} cycleLength={profile.cycleLength} size={220} />
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24, animation: "pulseRing 4s ease-in-out infinite" }}>
+              <CycleRing day={day} cycleLength={profile.cycleLength} size={220} glowing />
             </div>
 
-            {/* Stats grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {/* 4 stat cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               {[
-                { label: "Period in", val: daysToNextPeriod <= 0 ? "Today" : `${daysToNextPeriod} days`, sub: fmtDate(nextPeriod), color: "#f87171" },
-                { label: "Ovulation", val: daysToOvulation <= 0 ? "Now" : daysToOvulation === 1 ? "Tomorrow" : `${daysToOvulation} days`, sub: fmtDate(nextOvulation), color: "#34d399" },
-                { label: "Energy", val: tips.energy, sub: "Current phase", color: "#fbbf24" },
-                { label: "Mood", val: tips.mood, sub: "Expected", color: "#c084fc" },
-              ].map(s => (
-                <Card key={s.label} color={s.color} style={{ padding: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: BRAND.colors.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
-                    {s.label}
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 4, fontFamily: BRAND.fonts.heading }}>
-                    {s.val}
-                  </div>
-                  <div style={{ fontSize: 12, color: BRAND.colors.textMuted }}>
-                    {s.sub}
-                  </div>
-                </Card>
+                { label: "Period in",  val: dToP <= 0 ? "Today" : `${dToP}d`,  sub: fmtDate(nextP),     color: "#f472b6", bg: PHASES.menstruation.bg },
+                { label: "Ovulation",  val: dToO <= 0 ? "Now!" : dToO === 1 ? "Tmrw" : `${dToO}d`, sub: fmtDate(nextO), color: "#34d399", bg: PHASES.ovulation.bg },
+                { label: "Energy",     val: tips.energy,   sub: "Current phase",  color: "#fbbf24", bg: PHASES.follicular.bg },
+                { label: "Mood",       val: tips.mood,     sub: "Expected",       color: "#a78bfa", bg: PHASES.luteal.bg },
+              ].map((s, i) => (
+                <div key={s.label} className={`fade-in-${i + 1}`} style={{
+                  background: s.bg, border: `1px solid ${s.color}28`,
+                  borderRadius: B.r.xl, padding: "16px 18px",
+                }}>
+                  <Label style={{ color: s.color + "99" }}>{s.label}</Label>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: B.serif, marginBottom: 3, lineHeight: 1 }}>{s.val}</div>
+                  <div style={{ fontSize: 11, color: B.textMuted }}>{s.sub}</div>
+                </div>
               ))}
             </div>
 
-            {/* Libido stat */}
-            <Card color={PD.color} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 13, color: BRAND.colors.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
-                  Libido Level
-                </span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: PD.color }}>
-                  {tips.libido}
-                </span>
+            {/* Libido bar */}
+            <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: B.r.lg, padding: "12px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Label style={{ marginBottom: 0 }}>Libido</Label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {["Low","Medium","Rising","Peak","Falling"].map(l => (
+                  <div key={l} style={{ width: 28, height: 6, borderRadius: 3, background: tips.libido === l ? PD.color : B.border, transition: B.tx }} />
+                ))}
+                <span style={{ fontSize: 12, fontWeight: 600, color: PD.color, marginLeft: 4 }}>{tips.libido}</span>
               </div>
-            </Card>
+            </div>
 
             {/* Symptoms */}
-            <Card color={PD.color} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: BRAND.colors.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>
-                  Symptoms
-                </span>
-                <Button variant="secondary" onClick={() => setEditingSymptoms(!editingSymptoms)}>
-                  {editingSymptoms ? "Done" : "Edit"}
-                </Button>
+            <Card style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <Label style={{ marginBottom: 0 }}>Symptoms</Label>
+                <Btn variant="ghost" onClick={() => setEditSym(!editSym)} style={{ padding: "5px 14px", fontSize: 11 }}>
+                  {editSym ? "✓ Done" : "Edit"}
+                </Btn>
               </div>
-              
-              {editingSymptoms ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {editSym ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                   {SYMPTOMS.map(s => {
-                    const active = (profile.symptoms || []).includes(s);
+                    const on = (profile.symptoms || []).includes(s);
                     return (
-                      <button
-                        key={s}
-                        onClick={() => {
-                          const current = profile.symptoms || [];
-                          const updated = current.includes(s)
-                            ? current.filter(x => x !== s)
-                            : [...current, s];
-                          onUpdate({ ...profile, symptoms: updated });
-                        }}
-                        style={{
-                          background: active ? `${PD.color}30` : "rgba(255,255,255,0.05)",
-                          border: `1px solid ${active ? PD.color : "rgba(255,255,255,0.1)"}`,
-                          borderRadius: 30,
-                          padding: "8px 16px",
-                          color: active ? PD.color : BRAND.colors.textMuted,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        {s}
-                      </button>
+                      <button key={s} onClick={() => toggleSym(s)} className="sym-btn" style={{
+                        background: on ? PD.color + "25" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${on ? PD.color + "60" : B.border}`,
+                        borderRadius: B.r.pill, padding: "6px 13px",
+                        color: on ? PD.color : B.textMuted, fontSize: 12, cursor: "pointer",
+                      }}>{s}</button>
                     );
                   })}
                 </div>
               ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {(profile.symptoms || []).length === 0 ? (
-                    <span style={{ fontSize: 13, color: BRAND.colors.textMuted, fontStyle: "italic" }}>
-                      No symptoms logged
-                    </span>
-                  ) : (
-                    (profile.symptoms || []).map(s => (
-                      <span
-                        key={s}
-                        style={{
-                          background: `${PD.color}20`,
-                          border: `1px solid ${PD.color}40`,
-                          borderRadius: 30,
-                          padding: "6px 14px",
-                          fontSize: 13,
-                          color: PD.color,
-                        }}
-                      >
-                        {s}
-                      </span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  {(profile.symptoms || []).length === 0
+                    ? <span style={{ fontSize: 12, color: B.textMuted, fontStyle: "italic" }}>None logged — tap Edit to add symptoms.</span>
+                    : (profile.symptoms || []).map(s => (
+                      <span key={s} style={{ background: PD.color + "1a", border: `1px solid ${PD.color}35`, borderRadius: B.r.pill, padding: "5px 13px", fontSize: 12, color: PD.color }}>{s}</span>
                     ))
-                  )}
+                  }
                 </div>
               )}
             </Card>
 
             {/* Quick actions */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-              <Button
-                variant="accent"
-                onClick={() => onUpdate({ ...profile, lastPeriodStart: todayStr() })}
-                icon="🩸"
-                fullWidth
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <Btn
+                color={periodFlash ? "#34d399" : "#f472b6"}
+                onClick={markPeriodToday}
+                style={{ width: "100%", padding: "15px 12px", fontSize: 13, justifyContent: "center", borderRadius: B.r.lg }}
               >
-                Period Started
-              </Button>
-              <Button
-                variant="primary"
+                {periodFlash ? "✓ Saved!" : "🔴 Period Started"}
+              </Btn>
+              <Btn
+                color={B.lavender}
                 onClick={() => setShowLogModal(true)}
-                icon="❤️"
-                fullWidth
+                style={{ width: "100%", padding: "15px 12px", fontSize: 13, justifyContent: "center", borderRadius: B.r.lg }}
               >
-                Log Intimacy
-              </Button>
+                💕 Log Intimacy
+              </Btn>
             </div>
 
             <AIInsight profile={profile} />
           </div>
         )}
 
+        {/* ═════════════ CALENDAR ═════════════ */}
         {tab === "calendar" && (
           <div className="fade-in">
-            <Card color={PD.color}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <Button variant="secondary" onClick={() => setMonthOffset(m => m - 1)} icon="←" />
+            {/* Month nav */}
+            <Card style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <button onClick={() => setMonthOffset(m => m - 1)} style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }} className="btn-hover">‹</button>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: BRAND.fonts.heading }}>
-                    {new Date().toLocaleString("default", { month: "long", year: "numeric" })}
-                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary }}>{calLabel}</div>
+                  {monthOffset !== 0 && (
+                    <button onClick={() => setMonthOffset(0)} style={{ background: "none", border: "none", color: PD.color, fontSize: 11, cursor: "pointer", marginTop: 3, fontFamily: B.sans, textDecoration: "underline" }}>
+                      Today
+                    </button>
+                  )}
                 </div>
-                <Button variant="secondary" onClick={() => setMonthOffset(m => m + 1)} icon="→" />
+                <button onClick={() => setMonthOffset(m => m + 1)} style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: `1px solid ${B.border}`, color: B.textPrimary, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: B.tx }} className="btn-hover">›</button>
               </div>
-              
               <MonthCalendar profile={profile} monthOffset={monthOffset} />
             </Card>
 
             {/* Upcoming events */}
-            <Card color={PD.color} style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: BRAND.colors.textMuted, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
-                Upcoming Events
-              </div>
+            <Card style={{ marginBottom: 14 }}>
+              <Label>Upcoming Events</Label>
               {[
-                { label: "Next Period", date: nextPeriod, color: "#f87171", icon: "🩸" },
-                { label: "Ovulation", date: nextOvulation, color: "#34d399", icon: "✨" },
-              ].map(ev => (
-                <div key={ev.label} style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  padding: "12px 0",
-                  borderBottom: "1px solid rgba(255,255,255,0.1)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 18 }}>{ev.icon}</span>
-                    <span style={{ color: ev.color, fontWeight: 600 }}>{ev.label}</span>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ color: BRAND.colors.textSoft, fontSize: 14 }}>{fmtDate(ev.date)}</div>
-                    <div style={{ color: BRAND.colors.textMuted, fontSize: 12 }}>
-                      {daysUntil(ev.date)} days away
+                { label: "Next Period",  date: nextP, color: "#f472b6", emoji: "🔴" },
+                { label: "Ovulation",   date: nextO, color: "#34d399", emoji: "⚡" },
+              ].map((ev, i) => (
+                <div key={ev.label}>
+                  {i > 0 && <Divider />}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: ev.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{ev.emoji}</div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: B.textPrimary }}>{ev.label}</div>
+                        <div style={{ fontSize: 11, color: B.textMuted }}>{fmtDate(ev.date)}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: ev.color, fontFamily: B.serif }}>{daysUntil(ev.date)}d</div>
+                      <div style={{ fontSize: 10, color: B.textMuted }}>away</div>
                     </div>
                   </div>
                 </div>
               ))}
             </Card>
+
+            {/* Intimacy log */}
+            <Card>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div>
+                  <Label style={{ marginBottom: 2 }}>Intimacy Log</Label>
+                  <div style={{ fontSize: 11, color: B.textMuted }}>{(profile.intimacyLog || []).length} session{(profile.intimacyLog || []).length !== 1 ? "s" : ""} recorded</div>
+                </div>
+                <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ padding: "7px 16px", fontSize: 12 }}>+ Add</Btn>
+              </div>
+              {(profile.intimacyLog || []).length === 0
+                ? <p style={{ fontSize: 12, color: B.textMuted, fontStyle: "italic", margin: 0 }}>No sessions logged yet.</p>
+                : <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    {[...(profile.intimacyLog || [])].reverse().map(d => {
+                      const diff = Math.floor((new Date(d) - new Date(profile.lastPeriodStart)) / 86400000);
+                      const cd = ((diff % profile.cycleLength) + profile.cycleLength) % profile.cycleLength + 1;
+                      const ph = getPhaseFromDay(cd);
+                      const col = PHASES[ph].color;
+                      return (
+                        <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${B.border}` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 16 }}>💕</span>
+                            <div>
+                              <div style={{ fontSize: 13, color: B.textPrimary, fontWeight: 500 }}>{fmtDate(d)}</div>
+                              <span style={{ background: col + "1a", border: `1px solid ${col}35`, borderRadius: B.r.pill, padding: "2px 9px", fontSize: 10, color: col }}>
+                                {PHASES[ph].label} · Day {cd}
+                              </span>
+                            </div>
+                          </div>
+                          <button onClick={() => removeIntimacy(d)} style={{ background: "none", border: "none", color: B.textMuted, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "4px 8px", borderRadius: 6, transition: B.tx }} className="btn-hover">×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+              }
+            </Card>
           </div>
         )}
 
+        {/* ═════════════ LOG ═════════════ */}
+        {tab === "log" && (
+          <div className="fade-in">
+            <Card style={{ marginBottom: 14 }}>
+              <Label>Update Cycle Data</Label>
+              <Divider />
+              {[
+                { label: "Last Period Start Date",       key: "lastPeriodStart", type: "date"   },
+                { label: "Average Cycle Length (days)",  key: "cycleLength",     type: "number" },
+                { label: "Period Duration (days)",       key: "periodLength",    type: "number" },
+              ].map(f => (
+                <div key={f.key} style={{ marginBottom: 16 }}>
+                  <Label>{f.label}</Label>
+                  <input
+                    type={f.type}
+                    value={profile[f.key] || ""}
+                    min={f.type === "number" ? 1 : undefined}
+                    max={f.type === "number" ? 60 : undefined}
+                    onChange={e => onUpdate({ ...profile, [f.key]: f.type === "number" ? Math.max(1, parseInt(e.target.value) || 28) : e.target.value })}
+                    className="input-field"
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+              <Label>Personal Notes</Label>
+              <textarea
+                value={profile.notes || ""}
+                onChange={e => onUpdate({ ...profile, notes: e.target.value })}
+                placeholder="Mood patterns, preferences, observations…"
+                className="input-field"
+                style={{ ...inputStyle, minHeight: 110, resize: "vertical" }}
+              />
+            </Card>
+            <Btn color={B.lavender} onClick={() => setShowLogModal(true)} style={{ width: "100%", padding: 16, fontSize: 14, borderRadius: B.r.lg }}>
+              💕 Log Intimacy Session
+            </Btn>
+          </div>
+        )}
+
+        {/* ═════════════ INSIGHTS ═════════════ */}
         {tab === "insights" && (
           <div className="fade-in">
-            {Object.entries(PHASES).map(([key, val]) => {
-              const t = CYCLE_TIPS[key];
-              const isCurrent = phase === key;
-              
+            {/* Phase guide cards */}
+            {Object.values(PHASES).map((val, i) => {
+              const t = TIPS[val.key];
+              const isCur = phase === val.key;
               return (
-                <Card
-                  key={key}
-                  color={val.color}
-                  style={{
-                    marginBottom: 12,
-                    border: isCurrent ? `2px solid ${val.color}` : `1px solid ${val.color}20`,
-                    transform: isCurrent ? "scale(1.02)" : "scale(1)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: 16,
-                        background: `${val.color}20`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 24,
-                      }}>
-                        {val.emoji}
-                      </div>
-                      <div>
-                        <div style={{ color: val.color, fontSize: 16, fontWeight: 700, fontFamily: BRAND.fonts.heading }}>
-                          {val.label}
+                <div key={val.key} className={`fade-in-${Math.min(i + 1, 4)}`} style={{ marginBottom: 12 }}>
+                  <Card style={{
+                    border: `1px solid ${isCur ? val.color + "55" : B.border}`,
+                    background: isCur ? `linear-gradient(135deg, ${val.bg}, ${B.card})` : B.card,
+                    boxShadow: isCur ? `0 6px 30px ${val.color}18` : B.shadow.card,
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: val.color + "1a", border: `1px solid ${val.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                          {val.emoji}
                         </div>
-                        <div style={{ color: BRAND.colors.textMuted, fontSize: 12 }}>
-                          Day {val.days[0]}–{val.days[1]}
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: val.color, fontFamily: B.serif }}>{val.label}</div>
+                          <div style={{ fontSize: 11, color: B.textMuted }}>Day {val.days[0]}–{val.days[1]}</div>
                         </div>
                       </div>
+                      {isCur && (
+                        <div style={{ background: val.color, borderRadius: B.r.pill, padding: "4px 14px", fontSize: 11, fontWeight: 700, color: "#0d0d1a" }}>NOW</div>
+                      )}
                     </div>
-                    {isCurrent && (
-                      <span style={{
-                        background: val.color,
-                        borderRadius: 30,
-                        padding: "4px 12px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "#111",
-                      }}>
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  
-                  <p style={{ fontSize: 14, color: BRAND.colors.textMuted, lineHeight: 1.6, marginBottom: 16 }}>
-                    {t.note}
-                  </p>
-                  
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{
-                      background: `${val.color}20`,
-                      border: `1px solid ${val.color}40`,
-                      borderRadius: 30,
-                      padding: "4px 12px",
-                      fontSize: 12,
-                      color: val.color,
-                    }}>
-                      ⚡ {t.energy}
-                    </span>
-                    <span style={{
-                      background: `${val.color}20`,
-                      border: `1px solid ${val.color}40`,
-                      borderRadius: 30,
-                      padding: "4px 12px",
-                      fontSize: 12,
-                      color: val.color,
-                    }}>
-                      🧠 {t.mood}
-                    </span>
-                    <span style={{
-                      background: `${val.color}20`,
-                      border: `1px solid ${val.color}40`,
-                      borderRadius: 30,
-                      padding: "4px 12px",
-                      fontSize: 12,
-                      color: val.color,
-                    }}>
-                      {t.safe ? "✅ Safe" : "⚠️ Risky"}
-                    </span>
-                  </div>
-                </Card>
+                    <p style={{ fontSize: 13, color: B.textSecondary, lineHeight: 1.7, margin: "0 0 14px" }}>{t.note}</p>
+                    {/* Tags */}
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                      {[
+                        { icon: "⚡", label: `Energy: ${t.energy}` },
+                        { icon: "🧠", label: `Mood: ${t.mood}` },
+                        { icon: "💫", label: `Libido: ${t.libido}` },
+                        { icon: t.safe ? "✅" : "⚠️", label: t.safe ? "Safe" : "Risky" },
+                      ].map(tag => (
+                        <span key={tag.label} style={{ background: val.color + "18", border: `1px solid ${val.color}30`, borderRadius: B.r.pill, padding: "4px 12px", fontSize: 11, color: val.color }}>
+                          {tag.icon} {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
               );
             })}
-            
             <AIInsight profile={profile} />
           </div>
         )}
+
       </div>
 
-      {/* Log Intimacy Modal */}
+      {/* ── LOG INTIMACY MODAL ── */}
       {showLogModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.8)",
-          backdropFilter: "blur(10px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 200,
-          animation: "fadeIn 0.3s ease",
-        }}>
-          <Card color={PD.color} style={{ maxWidth: 400, width: "90%", padding: 28 }}>
-            <h3 style={{ 
-              margin: "0 0 20px", 
-              fontSize: 24, 
-              fontFamily: BRAND.fonts.heading,
-              color: BRAND.colors.text,
-            }}>
-              Log Intimacy Session
-            </h3>
-            
-            <label style={{ 
-              fontSize: 12, 
-              color: BRAND.colors.textMuted, 
-              display: "block", 
-              marginBottom: 8, 
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-            }}>
-              Date
-            </label>
-            <input
-              type="date"
-              value={logDate}
-              onChange={e => setLogDate(e.target.value)}
-              style={{
-                width: "100%",
-                background: "rgba(255,255,255,0.05)",
-                border: `1px solid ${PD.color}40`,
-                borderRadius: 16,
-                padding: "14px 18px",
-                color: BRAND.colors.text,
-                fontSize: 14,
-                outline: "none",
-                marginBottom: 24,
-              }}
-            />
-            
-            <div style={{ display: "flex", gap: 12 }}>
-              <Button variant="secondary" onClick={() => setShowLogModal(false)} fullWidth>
-                Cancel
-              </Button>
-              <Button 
-                variant="primary" 
-                onClick={() => {
-                  const current = profile.intimacyLog || [];
-                  if (!current.includes(logDate)) {
-                    onUpdate({ ...profile, intimacyLog: [...current, logDate].sort() });
-                  }
-                  setShowLogModal(false);
-                }}
-                fullWidth
-              >
-                Save
-              </Button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }}>
+          <div className="fade-in" style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: "28px 28px 0 0", padding: 28, width: "100%", maxWidth: 500 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: B.border, margin: "0 auto 22px" }} />
+            <h3 style={{ fontFamily: B.serif, fontSize: 20, marginBottom: 20, color: B.textPrimary }}>💕 Log Intimacy Session</h3>
+            <Label>Date</Label>
+            <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="input-field"
+              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.md, padding: "12px 16px", color: B.textPrimary, fontSize: 14, outline: "none", display: "block", marginBottom: 22 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <Btn variant="secondary" onClick={() => setShowLogModal(false)} style={{ flex: 1, padding: 14 }}>Cancel</Btn>
+              <Btn color={B.lavender} onClick={logIntimacy} style={{ flex: 2, padding: 14, fontSize: 14 }}>Save Session 💕</Btn>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
-      {showDeleteConfirm && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.8)",
-          backdropFilter: "blur(10px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 200,
-          animation: "fadeIn 0.3s ease",
-        }}>
-          <Card color="#f87171" style={{ maxWidth: 340, padding: 28, textAlign: "center" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-            <h3 style={{ 
-              margin: "0 0 12px", 
-              fontSize: 22, 
-              fontFamily: BRAND.fonts.heading,
-              color: BRAND.colors.text,
-            }}>
-              Delete {profile.name}?
-            </h3>
-            <p style={{ color: BRAND.colors.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
-              All her data will be permanently removed.
+      {/* ── DELETE CONFIRM MODAL ── */}
+      {showDelModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)", padding: 20 }}>
+          <div className="fade-in" style={{ background: B.surface, border: "1px solid rgba(244,114,182,0.25)", borderRadius: B.r.xl, padding: 32, width: "100%", maxWidth: 340, textAlign: "center" }}>
+            <div style={{ fontSize: 44, marginBottom: 14 }}>🗑️</div>
+            <h3 style={{ fontFamily: B.serif, fontSize: 22, marginBottom: 8, color: B.textPrimary }}>Delete {profile.name}?</h3>
+            <p style={{ color: B.textSecondary, fontSize: 13, marginBottom: 26, lineHeight: 1.65 }}>
+              All cycle history, intimacy logs, symptoms, and notes will be permanently removed.
             </p>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)} fullWidth>
-                Cancel
-              </Button>
-              <Button variant="danger" onClick={onDelete} fullWidth>
-                Delete
-              </Button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Btn variant="secondary" onClick={() => setShowDelModal(false)} style={{ flex: 1, padding: 14 }}>Cancel</Btn>
+              <Btn variant="danger" onClick={onDelete} style={{ flex: 1, padding: 14, background: "#f472b6", color: "white", border: "none" }}>Delete</Btn>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Add Profile ──────────────────────────────────────────────────────────────
+// ─── ADD PROFILE ──────────────────────────────────────────────────────────────
 
 function AddProfile({ onAdd, onBack }) {
   const [form, setForm] = useState({
     name: "", lastPeriodStart: todayStr(),
     cycleLength: 28, periodLength: 5, avatar: "🌸",
   });
-  const [step, setStep] = useState(1);
+  const canSubmit = form.name.trim().length > 0;
+
+  const inputStyle = {
+    width: "100%", background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${B.border}`, borderRadius: B.r.md,
+    padding: "12px 16px", color: B.textPrimary, fontSize: 14,
+    outline: "none", display: "block",
+  };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: BRAND.colors.background, 
-      color: BRAND.colors.text, 
-      fontFamily: BRAND.fonts.body,
-      position: "relative",
-    }}>
-      <style>{animations}</style>
+    <div style={{ minHeight: "100vh", background: B.bg, color: B.textPrimary, fontFamily: B.sans }}>
       <BgDecor phase="luteal" />
-      
-      <div style={{ 
-        position: "relative", 
-        zIndex: 2, 
-        maxWidth: 480, 
-        margin: "0 auto", 
-        padding: "20px 16px 80px",
-        animation: "fadeIn 0.5s ease",
-      }}>
+      <div style={{ position: "relative", zIndex: 2, maxWidth: 500, margin: "0 auto", padding: "18px 18px 100px" }}>
 
-        <Button variant="secondary" onClick={onBack} icon="←" style={{ marginBottom: 28 }}>
-          Back
-        </Button>
+        <Btn variant="secondary" onClick={onBack} style={{ marginBottom: 24, padding: "8px 16px", fontSize: 13 }}>← Back</Btn>
 
-        <h2 style={{ 
-          margin: "0 0 8px", 
-          fontSize: 36, 
-          fontFamily: BRAND.fonts.heading, 
-          fontWeight: 700,
-          color: BRAND.colors.text,
-        }}>
-          Add Profile
-        </h2>
-        <p style={{ color: BRAND.colors.textMuted, fontSize: 15, marginBottom: 32 }}>
-          Start tracking her cycle with Luna
-        </p>
+        <div className="fade-in" style={{ marginBottom: 28 }}>
+          <h2 style={{ fontFamily: B.serif, fontSize: 32, fontWeight: 700, marginBottom: 6, lineHeight: 1.1, color: B.textPrimary }}>Add Profile</h2>
+          <p style={{ color: B.textSecondary, fontSize: 14, lineHeight: 1.55 }}>Track her cycle and get personalized insights.</p>
+        </div>
 
-        {/* Progress steps */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
-          {[1, 2].map(i => (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                height: 4,
-                borderRadius: 2,
-                background: i <= step ? BRAND.colors.primary : "rgba(255,255,255,0.1)",
-                transition: "all 0.3s ease",
-              }}
-            />
+        <Card className="fade-in-1" style={{ marginBottom: 14 }}>
+          {/* Avatar picker */}
+          <Label>Choose Avatar</Label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            {AVATARS.map(a => (
+              <button key={a} onClick={() => setForm({ ...form, avatar: a })} className="btn-hover" style={{
+                width: 46, height: 46, fontSize: 20, borderRadius: 14, cursor: "pointer",
+                background: form.avatar === a ? B.lavenderDim : "rgba(255,255,255,0.04)",
+                border: `2px solid ${form.avatar === a ? B.lavender : B.border}`,
+                transition: B.tx,
+              }}>{a}</button>
+            ))}
+          </div>
+          <Divider />
+
+          {/* Fields */}
+          {[
+            { label: "Name",                    key: "name",            type: "text",   ph: "Her name…"   },
+            { label: "Last Period Start Date",  key: "lastPeriodStart", type: "date"                      },
+            { label: "Average Cycle Length",    key: "cycleLength",     type: "number", ph: "28"          },
+            { label: "Period Duration (days)",  key: "periodLength",    type: "number", ph: "5"           },
+          ].map(f => (
+            <div key={f.key} style={{ marginBottom: 16 }}>
+              <Label>{f.label}</Label>
+              <input
+                type={f.type}
+                value={form[f.key]}
+                placeholder={f.ph}
+                min={f.type === "number" ? 1 : undefined}
+                max={f.type === "number" ? 60 : undefined}
+                onChange={e => setForm({ ...form, [f.key]: f.type === "number" ? Math.max(1, parseInt(e.target.value) || 28) : e.target.value })}
+                className="input-field"
+                style={inputStyle}
+                autoFocus={f.key === "name"}
+              />
+            </div>
           ))}
-        </div>
+        </Card>
 
-        {step === 1 ? (
-          <Card color={BRAND.colors.primary} style={{ padding: 28 }}>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ 
-                fontSize: 12, 
-                fontWeight: 600, 
-                color: BRAND.colors.textMuted, 
-                display: "block", 
-                marginBottom: 12,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}>
-                Choose Avatar
-              </label>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {AVATARS.map(a => (
-                  <button
-                    key={a}
-                    onClick={() => setForm({ ...form, avatar: a })}
-                    style={{
-                      width: 52, height: 52, fontSize: 26, borderRadius: 18,
-                      background: form.avatar === a ? `${BRAND.colors.primary}30` : "rgba(255,255,255,0.05)",
-                      border: `2px solid ${form.avatar === a ? BRAND.colors.primary : "rgba(255,255,255,0.1)"}`,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      transform: form.avatar === a ? "scale(1.1)" : "scale(1)",
-                    }}
-                  >
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ 
-                fontSize: 12, 
-                fontWeight: 600, 
-                color: BRAND.colors.textMuted, 
-                display: "block", 
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}>
-                Name
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Her name..."
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,0.05)",
-                  border: `1px solid ${BRAND.colors.primary}40`,
-                  borderRadius: 16,
-                  padding: "14px 18px",
-                  color: BRAND.colors.text,
-                  fontSize: 15,
-                  outline: "none",
-                }}
-              />
-            </div>
-          </Card>
-        ) : (
-          <Card color={BRAND.colors.primary} style={{ padding: 28 }}>
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ 
-                fontSize: 12, 
-                fontWeight: 600, 
-                color: BRAND.colors.textMuted, 
-                display: "block", 
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}>
-                Last Period Start
-              </label>
-              <input
-                type="date"
-                value={form.lastPeriodStart}
-                onChange={e => setForm({ ...form, lastPeriodStart: e.target.value })}
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,0.05)",
-                  border: `1px solid ${BRAND.colors.primary}40`,
-                  borderRadius: 16,
-                  padding: "14px 18px",
-                  color: BRAND.colors.text,
-                  fontSize: 15,
-                  outline: "none",
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ 
-                fontSize: 12, 
-                fontWeight: 600, 
-                color: BRAND.colors.textMuted, 
-                display: "block", 
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}>
-                Cycle Length (days)
-              </label>
-              <input
-                type="number"
-                value={form.cycleLength}
-                onChange={e => setForm({ ...form, cycleLength: parseInt(e.target.value) || 28 })}
-                min={21}
-                max={35}
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,0.05)",
-                  border: `1px solid ${BRAND.colors.primary}40`,
-                  borderRadius: 16,
-                  padding: "14px 18px",
-                  color: BRAND.colors.text,
-                  fontSize: 15,
-                  outline: "none",
-                }}
-              />
-            </div>
-          </Card>
-        )}
-
-        <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-          {step > 1 && (
-            <Button variant="secondary" onClick={() => setStep(1)} fullWidth>
-              Back
-            </Button>
-          )}
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (step === 1) {
-                if (form.name.trim()) setStep(2);
-              } else {
-                onAdd({ ...form, id: Date.now().toString(), symptoms: [], intimacyLog: [], notes: "", hidden: false });
-              }
-            }}
-            disabled={step === 1 ? !form.name.trim() : false}
-            fullWidth
-          >
-            {step === 1 ? "Continue" : "Add Profile"}
-          </Button>
-        </div>
+        <Btn
+          color={B.lavender}
+          onClick={() => { if (canSubmit) onAdd({ ...form, id: Date.now().toString(), symptoms: [], intimacyLog: [], notes: "", hidden: false }); }}
+          disabled={!canSubmit}
+          style={{ width: "100%", padding: "16px", fontSize: 15, borderRadius: B.r.lg }}
+        >
+          Add Profile →
+        </Btn>
       </div>
     </div>
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
 function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   const [showHidden, setShowHidden] = useState(false);
-  const [hoveredId, setHoveredId] = useState(null);
   const visible = profiles.filter(p => showHidden ? p.hidden : !p.hidden);
   const hiddenCount = profiles.filter(p => p.hidden).length;
+  const activeProfiles = profiles.filter(p => !p.hidden);
 
-  const stats = [
-    { 
-      label: "Profiles", 
-      value: profiles.filter(p => !p.hidden).length,
-      icon: <Icons.Heart />,
-      color: BRAND.colors.primary,
-    },
-    { 
-      label: "Safe Now", 
-      value: profiles.filter(p => !p.hidden && CYCLE_TIPS[getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength))].safe).length,
-      icon: <Icons.Sparkles />,
-      color: BRAND.colors.accent,
-    },
-    { 
-      label: "Ovulating", 
-      value: profiles.filter(p => !p.hidden && getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength)) === "ovulation").length,
-      icon: <Icons.Sprout />,
-      color: "#fbbf24",
-    },
-  ];
+  // Summary stats
+  const safeCt    = activeProfiles.filter(p => TIPS[getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength))].safe).length;
+  const ovCt      = activeProfiles.filter(p => getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength)) === "ovulation").length;
+  const sessionCt = activeProfiles.reduce((a, p) => a + (p.intimacyLog || []).length, 0);
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: BRAND.colors.background, 
-      color: BRAND.colors.text, 
-      fontFamily: BRAND.fonts.body,
-      position: "relative",
-    }}>
-      <style>{animations}</style>
+    <div style={{ minHeight: "100vh", background: B.bg, color: B.textPrimary, fontFamily: B.sans }}>
       <BgDecor phase="luteal" />
-      
-      <div style={{ 
-        position: "relative", 
-        zIndex: 2, 
-        maxWidth: 480, 
-        margin: "0 auto", 
-        padding: "0 16px 100px",
-        animation: "fadeIn 0.5s ease",
-      }}>
+      <div style={{ position: "relative", zIndex: 2, maxWidth: 500, margin: "0 auto", padding: "0 18px 100px" }}>
 
-        {/* Header */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
-          padding: "28px 0 24px",
-        }}>
-          <div>
-            <p style={{ margin: "0 0 4px", fontSize: 14, color: BRAND.colors.textMuted }}>
-              Welcome back,
-            </p>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: 32, 
-              fontFamily: BRAND.fonts.heading, 
-              fontWeight: 700,
-              color: BRAND.colors.text,
-            }}>
-              {user?.username}
-            </h1>
-          </div>
-          
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="primary" onClick={onAdd} icon="+">
-              Add
-            </Button>
-            <Button variant="secondary" onClick={onLogout}>
-              Sign out
-            </Button>
+        {/* ── HEADER ── */}
+        <div className="fade-in" style={{ padding: "26px 0 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <p style={{ fontSize: 12, color: B.textMuted, letterSpacing: 0.5, marginBottom: 3, fontWeight: 500 }}>Welcome back</p>
+              <h1 style={{ fontFamily: B.serif, fontSize: 28, fontWeight: 700, marginBottom: 3, lineHeight: 1.1, color: B.textPrimary }}>{user.username}</h1>
+              <p style={{ fontSize: 12, color: B.textMuted }}>
+                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", paddingTop: 4 }}>
+              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "9px 20px" }}>+ Add Profile</Btn>
+              <Btn variant="ghost" onClick={onLogout} style={{ padding: "7px 14px", fontSize: 12 }}>Sign out</Btn>
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
-        {profiles.filter(p => !p.hidden).length > 0 && (
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(3, 1fr)", 
-            gap: 12, 
-            marginBottom: 24 
-          }}>
-            {stats.map(stat => (
-              <Card key={stat.label} color={stat.color} style={{ padding: 16, textAlign: "center" }}>
-                <div style={{ 
-                  width: 36, 
-                  height: 36, 
-                  borderRadius: 12, 
-                  background: `${stat.color}20`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px",
-                  color: stat.color,
-                }}>
-                  {stat.icon}
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: stat.color, fontFamily: BRAND.fonts.heading }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: 12, color: BRAND.colors.textMuted, marginTop: 4 }}>
-                  {stat.label}
-                </div>
-              </Card>
+        {/* ── SUMMARY STRIP ── */}
+        {activeProfiles.length > 0 && (
+          <div className="fade-in-1" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 20 }}>
+            {[
+              { label: "Profiles",  val: activeProfiles.length, color: B.lavender,  bg: PHASES.luteal.bg  },
+              { label: "Safe Now",  val: safeCt,                color: "#34d399",   bg: PHASES.ovulation.bg },
+              { label: "Ovulating", val: ovCt,                  color: "#fbbf24",   bg: PHASES.follicular.bg },
+              { label: "Sessions",  val: sessionCt,             color: "#f472b6",   bg: PHASES.menstruation.bg },
+            ].map(s => (
+              <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}25`, borderRadius: B.r.lg, padding: "12px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: B.textMuted, marginTop: 4, fontWeight: 500 }}>{s.label}</div>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Hidden toggle */}
+        {/* ── HIDDEN TOGGLE ── */}
         {hiddenCount > 0 && (
-          <Button
-            variant="secondary"
+          <button
             onClick={() => setShowHidden(h => !h)}
-            fullWidth
-            style={{ marginBottom: 16 }}
+            className="btn-hover"
+            style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${B.border}`, borderRadius: B.r.pill, padding: "11px 16px", color: B.textMuted, fontSize: 12, cursor: "pointer", marginBottom: 16, fontFamily: B.sans, transition: B.tx }}
           >
-            {showHidden ? `👁 Showing ${hiddenCount} hidden` : `🙈 ${hiddenCount} hidden profiles`}
-          </Button>
+            {showHidden ? `👁 Showing ${hiddenCount} hidden — tap to hide` : `🙈 ${hiddenCount} hidden profile${hiddenCount > 1 ? "s" : ""} — tap to reveal`}
+          </button>
         )}
 
-        {/* Profile list */}
+        {/* ── EMPTY STATE ── */}
         {visible.length === 0 ? (
-          <Card color={BRAND.colors.primary} style={{ textAlign: "center", padding: 48 }}>
-            <div style={{ fontSize: 64, marginBottom: 20 }}>🌙</div>
-            <h2 style={{ fontFamily: BRAND.fonts.heading, margin: "0 0 12px", fontSize: 24 }}>
+          <div className="fade-in" style={{ textAlign: "center", padding: "72px 20px" }}>
+            <div style={{ fontSize: 60, marginBottom: 18 }}>🌙</div>
+            <h2 style={{ fontFamily: B.serif, fontSize: 24, marginBottom: 10, color: B.textPrimary }}>
               {showHidden ? "No hidden profiles" : "No profiles yet"}
             </h2>
-            <p style={{ color: BRAND.colors.textMuted, marginBottom: 24 }}>
-              {showHidden ? "All profiles are visible" : "Add your first profile to start tracking"}
+            <p style={{ color: B.textSecondary, marginBottom: 32, lineHeight: 1.65, fontSize: 14 }}>
+              {showHidden ? "All profiles are visible." : "Add your first profile to start tracking cycles and getting insights."}
             </p>
             {!showHidden && (
-              <Button variant="primary" onClick={onAdd} fullWidth>
-                Add Profile
-              </Button>
+              <Btn color={B.lavender} onClick={onAdd} style={{ padding: "13px 32px", fontSize: 15 }}>
+                Add First Profile →
+              </Btn>
             )}
-          </Card>
+          </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          /* ── PROFILE CARDS ── */
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {visible.map((profile, idx) => {
-              const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
+              const day   = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
               const phase = getPhaseFromDay(day);
-              const PD = PHASES[phase];
-              const tips = CYCLE_TIPS[phase];
-              const isHovered = hoveredId === profile.id;
-              
+              const PD    = PHASES[phase];
+              const tips  = TIPS[phase];
+              const dToP  = daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength));
+              const dToO  = daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength));
+              const accent = CARD_ACCENTS[idx % CARD_ACCENTS.length];
+
               return (
                 <div
                   key={profile.id}
-                  onMouseEnter={() => setHoveredId(profile.id)}
-                  onMouseLeave={() => setHoveredId(null)}
+                  className={`card-hover fade-in-${Math.min(idx + 1, 4)}`}
                   onClick={() => onSelect(profile)}
-                  style={{
-                    position: "relative",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    transform: isHovered ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)",
-                  }}
+                  style={{ borderRadius: B.r.xl, overflow: "hidden", cursor: "pointer", background: B.card, boxShadow: B.shadow.card }}
                 >
-                  <Card color={PD.color} style={{ padding: 0, overflow: "hidden" }}>
-                    {/* Gradient top bar */}
-                    <div style={{
-                      height: 6,
-                      background: `linear-gradient(90deg, ${PD.color}, ${BRAND.colors.secondary})`,
-                    }} />
-                    
-                    <div style={{ padding: 20 }}>
-                      {/* Header */}
-                      <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
-                        <div style={{
-                          width: 56, height: 56, borderRadius: 18,
-                          background: `${PD.color}30`,
-                          border: `2px solid ${PD.color}`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 26,
-                        }}>
-                          {profile.avatar}
+                  {/* Color top stripe */}
+                  <div style={{ height: 5, background: `linear-gradient(90deg, ${accent}, ${accent}88)` }} />
+                  <div style={{ padding: "18px 18px 16px", border: `1px solid ${accent}18`, borderTop: "none", borderRadius: `0 0 ${B.r.xl}px ${B.r.xl}px` }}>
+
+                    {/* Name + phase + badge */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 16, background: accent + "28", border: `2px solid ${accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+                        {profile.avatar}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, fontFamily: B.serif, color: B.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
+                          {profile.name}
                         </div>
-                        
-                        <div style={{ flex: 1 }}>
-                          <h3 style={{ 
-                            margin: "0 0 4px", 
-                            fontSize: 20, 
-                            fontFamily: BRAND.fonts.heading, 
-                            fontWeight: 700,
-                            color: BRAND.colors.text,
-                          }}>
-                            {profile.name}
-                          </h3>
-                          <div style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            background: `${PD.color}20`,
-                            borderRadius: 30,
-                            padding: "4px 12px",
-                            border: `1px solid ${PD.color}40`,
-                          }}>
-                            <span style={{ fontSize: 12 }}>{PD.emoji}</span>
-                            <span style={{ fontSize: 12, color: PD.color, fontWeight: 600 }}>
-                              {PD.label} · Day {day}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div style={{
-                          background: tips.safe ? BRAND.colors.accent : PD.color,
-                          borderRadius: 30,
-                          padding: "6px 14px",
-                          color: "#111",
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}>
-                          {tips.safe ? "✓ Safe" : "⚠️ Risk"}
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: PD.color + "18", borderRadius: B.r.pill, padding: "3px 10px", border: `1px solid ${PD.color}28` }}>
+                          <span style={{ fontSize: 10 }}>{PD.emoji}</span>
+                          <span style={{ fontSize: 11, color: PD.color, fontWeight: 600 }}>{PD.label} · Day {day}</span>
                         </div>
                       </div>
-                      
-                      {/* Progress bar */}
                       <div style={{
-                        display: "flex",
-                        height: 6,
-                        borderRadius: 3,
-                        overflow: "hidden",
-                        gap: 2,
-                        marginBottom: 16,
+                        background: tips.safe ? "rgba(52,211,153,0.15)" : "rgba(244,114,182,0.15)",
+                        border: `1px solid ${tips.safe ? "#34d39940" : "#f472b640"}`,
+                        borderRadius: B.r.pill, padding: "6px 12px", flexShrink: 0,
                       }}>
-                        {Object.entries(PHASES).map(([k, v]) => {
-                          const width = ((v.days[1] - v.days[0] + 1) / profile.cycleLength) * 100;
-                          return (
-                            <div
-                              key={k}
-                              style={{
-                                width: `${width}%`,
-                                background: phase === k ? v.color : `${v.color}30`,
-                                transition: "all 0.3s ease",
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Mini stats */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div style={{
-                          background: "#f8717120",
-                          borderRadius: 12,
-                          padding: "10px",
-                          border: "1px solid #f8717140",
-                        }}>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: "#f87171", fontFamily: BRAND.fonts.heading }}>
-                            {daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength))}d
-                          </div>
-                          <div style={{ fontSize: 11, color: BRAND.colors.textMuted }}>to period</div>
-                        </div>
-                        
-                        <div style={{
-                          background: "#34d39920",
-                          borderRadius: 12,
-                          padding: "10px",
-                          border: "1px solid #34d39940",
-                        }}>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: "#34d399", fontFamily: BRAND.fonts.heading }}>
-                            {daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength))}d
-                          </div>
-                          <div style={{ fontSize: 11, color: BRAND.colors.textMuted }}>to ovulation</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: tips.safe ? "#34d399" : "#f472b6" }}>
+                          {tips.safe ? "✅ OK" : "⚠️ Risk"}
                         </div>
                       </div>
-                      
-                      {/* Symptom preview */}
-                      {(profile.symptoms || []).length > 0 && (
-                        <div style={{ 
-                          display: "flex", 
-                          gap: 6, 
-                          flexWrap: "wrap", 
-                          marginTop: 12,
-                          opacity: isHovered ? 1 : 0.8,
-                          transition: "opacity 0.3s ease",
-                        }}>
-                          {(profile.symptoms || []).slice(0, 3).map(s => (
-                            <span
-                              key={s}
-                              style={{
-                                background: `${PD.color}20`,
-                                border: `1px solid ${PD.color}40`,
-                                borderRadius: 30,
-                                padding: "4px 10px",
-                                fontSize: 11,
-                                color: PD.color,
-                              }}
-                            >
-                              {s}
-                            </span>
-                          ))}
-                          {(profile.symptoms || []).length > 3 && (
-                            <span style={{ fontSize: 11, color: BRAND.colors.textMuted }}>
-                              +{(profile.symptoms || []).length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  </Card>
+
+                    {/* Phase progress bar */}
+                    <div style={{ display: "flex", height: 5, borderRadius: 5, overflow: "hidden", gap: 2, marginBottom: 12 }}>
+                      {Object.values(PHASES).map(v => {
+                        const w = ((v.days[1] - v.days[0] + 1) / profile.cycleLength) * 100;
+                        return <div key={v.key} style={{ width: `${w}%`, background: phase === v.key ? v.color : v.color + "25", borderRadius: 3, transition: B.txSlow }} />;
+                      })}
+                    </div>
+
+                    {/* Stats */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (profile.symptoms || []).length > 0 ? 12 : 0 }}>
+                      {[
+                        { label: "Period",    val: dToP <= 0 ? "Today" : `${dToP}d`,                             color: "#f472b6", bg: PHASES.menstruation.bg },
+                        { label: "Ovulation", val: dToO <= 0 ? "Now!" : dToO === 1 ? "Tmrw" : `${dToO}d`,        color: "#34d399", bg: PHASES.ovulation.bg    },
+                        { label: "Sessions",  val: `${(profile.intimacyLog || []).length}`,                       color: B.lavender, bg: PHASES.luteal.bg      },
+                      ].map(s => (
+                        <div key={s.label} style={{ background: s.bg, borderRadius: B.r.md, padding: "9px 10px" }}>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: s.color, fontFamily: B.serif, lineHeight: 1 }}>{s.val}</div>
+                          <div style={{ fontSize: 10, color: B.textMuted, marginTop: 3 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Symptom tags */}
+                    {(profile.symptoms || []).length > 0 && (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {(profile.symptoms || []).slice(0, 4).map(s => (
+                          <span key={s} style={{ background: PD.color + "18", border: `1px solid ${PD.color}28`, borderRadius: B.r.pill, padding: "3px 10px", fontSize: 10, color: PD.color }}>{s}</span>
+                        ))}
+                        {(profile.symptoms || []).length > 4 && (
+                          <span style={{ fontSize: 11, color: B.textMuted, alignSelf: "center" }}>+{(profile.symptoms || []).length - 4}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1768,173 +1157,145 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   );
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
 
 function Login({ onLogin }) {
-  const [form, setForm] = useState({ username: "", password: "" });
-  const [isHovered, setIsHovered] = useState(false);
+  const [username, setUsername] = useState("");
+  const [focused,  setFocused]  = useState(false);
+  const canLogin = username.trim().length > 0;
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: BRAND.colors.background, 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      fontFamily: BRAND.fonts.body, 
-      position: "relative", 
-      padding: 20,
-    }}>
-      <style>{animations}</style>
+    <div style={{ minHeight: "100vh", background: B.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: B.sans, position: "relative", padding: 20 }}>
       <BgDecor phase="luteal" />
-      
-      <div style={{ 
-        position: "relative", 
-        zIndex: 2, 
-        width: "100%", 
-        maxWidth: 400,
-        animation: "fadeIn 0.5s ease",
-      }}>
-        <Card color={BRAND.colors.primary} style={{ textAlign: "center", padding: 40 }}>
-          <div style={{ 
-            fontSize: 72, 
-            marginBottom: 16,
-            animation: "float 6s infinite ease-in-out",
-          }}>
-            🌙
-          </div>
-          
-          <h1 style={{ 
-            margin: "0 0 8px", 
-            fontSize: 48, 
-            fontFamily: BRAND.fonts.heading, 
-            fontWeight: 700,
-            color: BRAND.colors.text,
-            background: `linear-gradient(135deg, ${BRAND.colors.primary}, ${BRAND.colors.secondary})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}>
-            Luna
-          </h1>
-          
-          <p style={{ color: BRAND.colors.textMuted, fontSize: 15, marginBottom: 32 }}>
-            Understand her rhythm
-          </p>
+      {/* Extra decorative blobs */}
+      <div style={{ position: "absolute", top: "8%", right: "-8%", width: 260, height: 260, borderRadius: "60% 40% 55% 45%", background: B.lavender + "18", pointerEvents: "none", animation: "floatBlob 16s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", bottom: "12%", left: "-10%", width: 220, height: 220, borderRadius: "50%", background: "#f472b618", pointerEvents: "none", animation: "floatBlob 20s ease-in-out infinite 3s" }} />
+      <div style={{ position: "absolute", top: "50%", right: "6%", width: 100, height: 100, borderRadius: "50%", background: "#fbbf2412", pointerEvents: "none", animation: "floatBlob 25s ease-in-out infinite 7s" }} />
 
-          <input
-            value={form.username}
-            onChange={e => setForm({ ...form, username: e.target.value })}
-            placeholder="Username"
-            onKeyDown={e => e.key === "Enter" && form.username && onLogin(form.username)}
-            style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.05)",
-              border: `1px solid ${BRAND.colors.primary}40`,
-              borderRadius: 16,
-              padding: "16px 20px",
-              color: BRAND.colors.text,
-              fontSize: 15,
-              outline: "none",
-              marginBottom: 12,
-            }}
-          />
-          
-          <input
-            type="password"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            placeholder="Password (optional)"
-            style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.05)",
-              border: `1px solid ${BRAND.colors.primary}40`,
-              borderRadius: 16,
-              padding: "16px 20px",
-              color: BRAND.colors.text,
-              fontSize: 15,
-              outline: "none",
-              marginBottom: 24,
-            }}
-          />
-          
-          <Button
-            variant="primary"
-            onClick={() => form.username && onLogin(form.username)}
-            disabled={!form.username}
-            fullWidth
-            style={{ padding: "16px" }}
-          >
-            Enter Luna
-          </Button>
-          
-          <p style={{ color: BRAND.colors.textMuted, fontSize: 12, marginTop: 24, marginBottom: 0 }}>
-            All data stored locally on your device
+      <div className="fade-in" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 380 }}>
+        {/* Hero */}
+        <div style={{ textAlign: "center", marginBottom: 44 }}>
+          <div style={{ fontSize: 56, marginBottom: 16, animation: "floatBlob 6s ease-in-out infinite" }}>🌙</div>
+          <h1 style={{ fontFamily: B.serif, fontSize: 42, fontWeight: 700, lineHeight: 1.1, color: B.textPrimary, margin: "0 0 10px" }}>
+            Find Your<br />Best Insight.
+          </h1>
+          <p style={{ color: B.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+            Cycle intelligence for the informed man.
           </p>
-        </Card>
+        </div>
+
+        <div style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: B.r.xl, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
+          <Label>Username</Label>
+          <input
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            placeholder="Enter a username"
+            onKeyDown={e => e.key === "Enter" && canLogin && onLogin(username.trim())}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            className="input-field"
+            autoFocus
+            style={{
+              width: "100%", background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${focused ? B.lavender + "80" : B.border}`,
+              borderRadius: B.r.md, padding: "14px 18px", color: B.textPrimary,
+              fontSize: 15, outline: "none", display: "block",
+              boxShadow: focused ? `0 0 0 3px ${B.lavender}18` : "none",
+              transition: B.tx, marginBottom: 20,
+            }}
+          />
+          <Btn
+            color={B.lavender}
+            onClick={() => canLogin && onLogin(username.trim())}
+            disabled={!canLogin}
+            style={{ width: "100%", padding: "15px", fontSize: 15, borderRadius: B.r.lg }}
+          >
+            Enter Cyclr →
+          </Btn>
+          <p style={{ textAlign: "center", color: B.textMuted, fontSize: 11, marginTop: 16, lineHeight: 1.5 }}>
+            All data is stored locally on your device.<br />No account needed.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Root App ─────────────────────────────────────────────────────────────────
+// ─── ROOT APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState("login");
-  const [user, setUser] = useState(null);
+  const [screen,   setScreen]   = useState("loading");
+  const [user,     setUser]     = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     try {
-      const u = JSON.parse(localStorage.getItem("luna_user") || "null");
-      const p = JSON.parse(localStorage.getItem("luna_profiles") || "[]");
-      if (u) { setUser(u); setScreen("dashboard"); }
-      setProfiles(p);
-    } catch {}
+      const u = JSON.parse(localStorage.getItem("cyclr_user") || "null");
+      const p = JSON.parse(localStorage.getItem("cyclr_profiles") || "[]");
+      setProfiles(Array.isArray(p) ? p : []);
+      if (u && u.username) { setUser(u); setScreen("dashboard"); }
+      else setScreen("login");
+    } catch {
+      setScreen("login");
+    }
   }, []);
 
   function save(p) {
-    setProfiles(p);
-    localStorage.setItem("luna_profiles", JSON.stringify(p));
+    const safe = Array.isArray(p) ? p : [];
+    setProfiles(safe);
+    localStorage.setItem("cyclr_profiles", JSON.stringify(safe));
   }
-
   function handleLogin(username) {
     const u = { username };
-    setUser(u);
-    localStorage.setItem("luna_user", JSON.stringify(u));
+    setUser(u); localStorage.setItem("cyclr_user", JSON.stringify(u));
     setScreen("dashboard");
   }
-
   function handleLogout() {
-    localStorage.removeItem("luna_user");
-    setUser(null);
-    setScreen("login");
+    localStorage.removeItem("cyclr_user"); setUser(null); setScreen("login");
   }
-
-  function handleAdd(profile) {
-    save([...profiles, profile]);
-    setScreen("dashboard");
-  }
-
+  function handleAdd(profile) { save([...profiles, profile]); setScreen("dashboard"); }
   function handleUpdate(updated) {
-    const newProfiles = profiles.map(x => x.id === updated.id ? updated : x);
-    save(newProfiles);
-    setSelected(updated);
+    const np = profiles.map(x => x.id === updated.id ? updated : x);
+    save(np); setSelected(updated);
   }
-
   function handleDelete() {
     save(profiles.filter(p => p.id !== selected.id));
-    setSelected(null);
-    setScreen("dashboard");
+    setSelected(null); setScreen("dashboard");
+  }
+  function handleSelect(profile) { setSelected(profile); setScreen("profile"); }
+
+  // Loading guard — prevents blank flash
+  if (screen === "loading") {
+    return (
+      <div style={{ minHeight: "100vh", background: B.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 40, animation: "floatBlob 2s ease-in-out infinite" }}>🌙</div>
+      </div>
+    );
   }
 
-  function handleSelect(profile) {
-    setSelected(profile);
-    setScreen("profile");
-  }
-
-  if (screen === "login") return <Login onLogin={handleLogin} />;
-  if (screen === "add") return <AddProfile onAdd={handleAdd} onBack={() => setScreen("dashboard")} />;
-  if (screen === "profile" && selected) return <ProfileDetail profile={selected} onUpdate={handleUpdate} onBack={() => setScreen("dashboard")} onDelete={handleDelete} />;
-  return <Dashboard user={user} profiles={profiles} onSelect={handleSelect} onAdd={() => setScreen("add")} onLogout={handleLogout} />;
+  return (
+    <>
+      <GlobalStyles />
+      {screen === "login"   && <Login onLogin={handleLogin} />}
+      {screen === "add"     && <AddProfile onAdd={handleAdd} onBack={() => setScreen("dashboard")} />}
+      {screen === "profile" && selected && (
+        <ProfileDetail
+          profile={selected}
+          onUpdate={handleUpdate}
+          onBack={() => setScreen("dashboard")}
+          onDelete={handleDelete}
+        />
+      )}
+      {(screen === "dashboard" || (screen === "profile" && !selected)) && (
+        <Dashboard
+          user={user || { username: "User" }}
+          profiles={profiles}
+          onSelect={handleSelect}
+          onAdd={() => setScreen("add")}
+          onLogout={handleLogout}
+        />
+      )}
+    </>
+  );
 }
