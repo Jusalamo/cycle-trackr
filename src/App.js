@@ -9,53 +9,17 @@ const BRAND = {
     primary: "#9b87f5",      // Soft lavender
     secondary: "#f9a8d4",    // Warm pink
     accent: "#6ee7b7",       // Mint
-    background: "#0a0a14",   // Deeper, richer dark
-    surface: "#14141f",      // Slightly lighter surface
-    surfaceElevated: "#1e1e2c",
+    background: "#0f0f1a",
+    surface: "#1a1a2e",
     text: "#ffffff",
-    textSoft: "rgba(255,255,255,0.85)",
-    textSecondary: "rgba(255,255,255,0.6)",
-    textTertiary: "rgba(255,255,255,0.3)",
-    divider: "rgba(255,255,255,0.08)",
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-    xxl: 48,
-  },
-  typography: {
-    title1: { fontSize: 34, lineHeight: 41, fontWeight: "700" },      // Large title
-    title2: { fontSize: 28, lineHeight: 34, fontWeight: "700" },      // Title 1
-    title3: { fontSize: 22, lineHeight: 28, fontWeight: "600" },      // Title 2
-    headline: { fontSize: 17, lineHeight: 22, fontWeight: "600" },    // Headline
-    body: { fontSize: 16, lineHeight: 22, fontWeight: "400" },        // Body
-    callout: { fontSize: 15, lineHeight: 20, fontWeight: "400" },     // Callout
-    subhead: { fontSize: 14, lineHeight: 18, fontWeight: "500" },     // Subhead
-    footnote: { fontSize: 13, lineHeight: 18, fontWeight: "400" },    // Footnote
-    caption1: { fontSize: 12, lineHeight: 16, fontWeight: "400" },    // Caption 1
-    caption2: { fontSize: 11, lineHeight: 13, fontWeight: "400" },    // Caption 2
+    textSoft: "rgba(255,255,255,0.7)",
+    textMuted: "rgba(255,255,255,0.4)",
   },
   fonts: {
-    heading: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Playfair Display', serif",
-    body: "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif",
+    heading: "'Playfair Display', serif",
+    body: "'Inter', sans-serif",
   },
-  radius: {
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
-    xxl: 32,
-    pill: 9999,
-  },
-  shadows: {
-    sm: "0 2px 8px rgba(0,0,0,0.2)",
-    md: "0 4px 12px rgba(0,0,0,0.3)",
-    lg: "0 8px 24px rgba(0,0,0,0.4)",
-  },
-  animation: {
+  animations: {
     spring: "cubic-bezier(0.4, 0, 0.2, 1)",
     bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
   }
@@ -64,151 +28,91 @@ const BRAND = {
 const PHASES = {
   menstruation: {
     label: "Menstruation", short: "Period",
-    color: "#f87171", bg: "#2a151f", emoji: "🩸", icon: "Drop",
+    color: "#f87171", bg: "#2a1515", emoji: "🩸", icon: "Drop",
     days: [1, 5], description: "Rest & recharge",
   },
   follicular: {
     label: "Follicular", short: "Follicular",
-    color: "#fbbf24", bg: "#2a2015", emoji: "🌱", icon: "Sprout",
+    color: "#fbbf24", bg: "#2a2010", emoji: "🌱", icon: "Sprout",
     days: [6, 13], description: "Energy rising",
   },
   ovulation: {
     label: "Ovulation", short: "Ovulation",
-    color: "#34d399", bg: "#0f2a1f", emoji: "✨", icon: "Sparkles",
+    color: "#34d399", bg: "#0f2a1a", emoji: "✨", icon: "Sparkles",
     days: [14, 16], description: "Peak vitality",
   },
   luteal: {
     label: "Luteal", short: "Luteal",
-    color: "#c084fc", bg: "#1a152a", emoji: "🌙", icon: "Moon",
+    color: "#c084fc", bg: "#1a1528", emoji: "🌙", icon: "Moon",
     days: [17, 28], description: "Wind down",
   },
 };
 
-// ─── Professional Icons ─────────────────────────────────────────────────────
-
-const Icons = {
-  Drop: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 3L12 19M12 3L8 7M12 3L16 7" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-      <path d="M12 19C9 19 6.5 16.5 6.5 13.5C6.5 10.5 9 8 12 8C15 8 17.5 10.5 17.5 13.5C17.5 16.5 15 19 12 19Z" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5}/>
-    </svg>
-  ),
-  Sprout: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 20V12M12 12C12 9 14.5 6.5 18 6.5C18 10 15.5 12.5 12 12.5ZM12 12C12 9 9.5 6.5 6 6.5C6 10 8.5 12.5 12 12.5Z" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-    </svg>
-  ),
-  Sparkles: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 4L13.5 9L18 10.5L13.5 12L12 17L10.5 12L6 10.5L10.5 9L12 4Z" fill="currentColor" fillOpacity="0.8"/>
-      <path d="M19 14L20 17L23 18L20 19L19 22L18 19L15 18L18 17L19 14Z" fill="currentColor" fillOpacity="0.6"/>
-    </svg>
-  ),
-  Moon: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M21 12.5C21 16.5 18 20 13 20C8 20 4 16 4 11C4 6.5 7.5 3.5 11.5 3.5C12 3.5 12 3.5 12 3.5C10 6.5 10.5 9.5 13 12C15.5 14.5 19 15 21 12.5Z" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5}/>
-    </svg>
-  ),
-  Calendar: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <rect x="4" y="6" width="16" height="14" rx="2" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5}/>
-      <path d="M8 4V8" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-      <path d="M16 4V8" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-      <path d="M4 10H20" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5}/>
-    </svg>
-  ),
-  Heart: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 21C12 21 4 16 4 10C4 6.5 7 4 10 4C12 4 14 5.5 15 7C16 5.5 18 4 20 4C23 4 24 6.5 24 10C24 16 16 21 16 21" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5}/>
-    </svg>
-  ),
-  Chart: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M4 4V20H20" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-      <path d="M8 16L12 11L15 14L20 8" stroke="currentColor" strokeWidth={props.strokeWidth || 1.5} strokeLinecap="round"/>
-    </svg>
-  ),
-  ChevronLeft: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth={props.strokeWidth || 2} strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  ),
-  ChevronRight: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth={props.strokeWidth || 2} strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  ),
-  Plus: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth={props.strokeWidth || 2} strokeLinecap="round"/>
-    </svg>
-  ),
-  X: (props) => (
-    <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth={props.strokeWidth || 2} strokeLinecap="round"/>
-    </svg>
-  ),
+const CYCLE_TIPS = {
+  menstruation: {
+    safe: false, risk: "High Risk",
+    note: "Shedding phase. She may need extra rest and care.",
+    energy: "Low", mood: "Sensitive", libido: "Low",
+  },
+  follicular: {
+    safe: true, risk: "Lower Risk",
+    note: "Estrogen rises — mood and energy improve steadily.",
+    energy: "Building", mood: "Optimistic", libido: "Increasing",
+  },
+  ovulation: {
+    safe: false, risk: "Peak Risk",
+    note: "Most fertile window. Energy and confidence peak.",
+    energy: "Peak", mood: "Confident", libido: "Peak",
+  },
+  luteal: {
+    safe: true, risk: "Lower Risk",
+    note: "Progesterone rises. She may prefer cozy time.",
+    energy: "Declining", mood: "Introspective", libido: "Moderate",
+  },
 };
 
-// ─── Animations ─────────────────────────────────────────────────────────────
+const SYMPTOMS = [
+  "Cramps", "Bloating", "Mood swings", "Headache", "Fatigue",
+  "Tender breasts", "Spotting", "Back pain", "Nausea",
+  "High libido", "Low libido", "Irritability", "Anxiety",
+  "Clear discharge", "PMS",
+];
+
+const AVATARS = ["🌸", "💜", "🌙", "🦋", "🌺", "✨", "💎", "🌹", "🔮", "🌊", "🍒", "🌷"];
+
+// ─── Animations & Styling Utilities ───────────────────────────────────────
 
 const animations = `
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155, 135, 245, 0); }
+    50% { box-shadow: 0 0 20px 0 rgba(155, 135, 245, 0.3); }
   }
   
-  @keyframes slideDown {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
   }
   
-  @keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+  .hover-lift {
+    transition: all 0.3s ${BRAND.animations.spring};
   }
   
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .hover-glow:hover {
+    box-shadow: 0 0 20px ${props => props.color}40;
   }
   
   .fade-in {
-    animation: fadeIn 0.3s ease;
-  }
-  
-  .slide-up {
-    animation: slideUp 0.4s ${BRAND.animation.spring};
-  }
-  
-  .slide-down {
-    animation: slideDown 0.4s ${BRAND.animation.spring};
-  }
-  
-  .scale-in {
-    animation: scaleIn 0.3s ${BRAND.animation.spring};
-  }
-  
-  .hover-scale {
-    transition: transform 0.2s ${BRAND.animation.spring};
-  }
-  
-  .hover-scale:active {
-    transform: scale(0.97);
-  }
-  
-  .tap-feedback {
-    transition: all 0.1s ease;
-  }
-  
-  .tap-feedback:active {
-    opacity: 0.7;
-    transform: scale(0.98);
+    animation: fadeIn 0.5s ${BRAND.animations.spring};
   }
 `;
 
@@ -255,30 +159,60 @@ function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
-// ─── Safe Area Context ───────────────────────────────────────────────────────
+// ─── Professional Icons Component ───────────────────────────────────────────
 
-function useSafeArea() {
-  const [safeArea, setSafeArea] = useState({ top: 0, bottom: 0 });
-  
-  useEffect(() => {
-    // This would ideally use react-native-safe-area-context, but for web we'll use env()
-    const checkSafeArea = () => {
-      const style = getComputedStyle(document.documentElement);
-      setSafeArea({
-        top: parseInt(style.getPropertyValue('--sat') || '0'),
-        bottom: parseInt(style.getPropertyValue('--sab') || '0'),
-      });
-    };
-    
-    checkSafeArea();
-    window.addEventListener('resize', checkSafeArea);
-    return () => window.removeEventListener('resize', checkSafeArea);
-  }, []);
-  
-  return safeArea;
-}
+const Icons = {
+  Drop: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M12 2.5L12 21M12 2.5L8 6.5M12 2.5L16 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M12 21C8.5 21 5.5 18 5.5 14.5C5.5 11 8.5 8 12 8C15.5 8 18.5 11 18.5 14.5C18.5 18 15.5 21 12 21Z" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  ),
+  Sprout: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M12 22V12M12 12C12 8 15 5 19 5C19 9 16 12 12 12ZM12 12C12 8 9 5 5 5C5 9 8 12 12 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  Sparkles: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M12 3L13.5 9L18 10.5L13.5 12L12 18L10.5 12L6 10.5L10.5 9L12 3Z" fill="currentColor" fillOpacity="0.8"/>
+      <path d="M19 14L20 17L23 18L20 19L19 22L18 19L15 18L18 17L19 14Z" fill="currentColor" fillOpacity="0.6"/>
+      <path d="M5 2L5.5 4L7 4.5L5.5 5L5 7L4.5 5L3 4.5L4.5 4L5 2Z" fill="currentColor" fillOpacity="0.6"/>
+    </svg>
+  ),
+  Moon: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M21 12.5C21 16.5 18 20 13 20C8 20 4 16 4 11C4 6 7.5 3 11.5 3C12 3 12 3 12 3C10 6 10.5 9.5 13 12C15.5 14.5 19 15 21 12.5Z" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+    </svg>
+  ),
+  Calendar: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M3 9H21" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M8 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M16 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  Heart: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M12 21C12 21 4 16 4 10C4 6.5 7 4 10 4C12 4 14 5.5 15 7C16 5.5 18 4 20 4C23 4 24 6.5 24 10C24 16 16 21 16 21" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+    </svg>
+  ),
+  Chart: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M3 3V21H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M7 17L11 11L15 14L21 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  Settings: (props) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M19.4 15C18.9 16 18.1 16.7 17.2 17.2L19 20.6L15.8 19.2C14.9 19.7 13.9 20 12.9 20L12 23.5L11.1 20C10.1 19.9 9.1 19.6 8.2 19.2L5 20.6L6.8 17.2C5.9 16.7 5.1 16 4.6 15L1.5 14L4.6 12.5C4.5 11.8 4.5 11.2 4.6 10.5L1.5 9L4.6 7.5C5.1 6.5 5.9 5.8 6.8 5.3L5 2L8.2 3.5C9.1 3 10.1 2.7 11.1 2.5L12 -1L12.9 2.5C13.9 2.7 14.9 3 15.8 3.5L19 2L17.2 5.3C18.1 5.8 18.9 6.5 19.4 7.5L22.5 9L19.4 10.5C19.5 11.2 19.5 11.8 19.4 12.5L22.5 14L19.4 15Z" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  ),
+};
 
-// ─── Background Decor (Optimized for Mobile) ───────────────────────────────
+// ─── Background Decor with Animation ───────────────────────────────────────
 
 function BgDecor({ phase }) {
   const c = PHASES[phase || "luteal"].color;
@@ -290,211 +224,124 @@ function BgDecor({ phase }) {
       overflow: "hidden", 
       pointerEvents: "none", 
       zIndex: 0,
-      opacity: 0.2, // Reduced opacity for mobile
+      opacity: 0.3,
     }}>
       <div style={{
-        position: "absolute", 
-        top: "-20vh", 
-        right: "-10vw", 
-        width: "60vmax", 
-        height: "60vmax",
-        borderRadius: "50%",
-        background: `radial-gradient(circle at 30% 30%, ${c}20, transparent 70%)`,
-        transform: "rotate(45deg)",
+        position: "absolute", top: -100, right: -100, width: 400, height: 400,
+        borderRadius: "60% 40% 55% 45% / 45% 55% 40% 60%",
+        background: `radial-gradient(circle at 30% 30%, ${c}, transparent 70%)`,
+        animation: "float 8s infinite ease-in-out",
       }} />
       <div style={{
-        position: "absolute", 
-        bottom: "-20vh", 
-        left: "-10vw", 
-        width: "50vmax", 
-        height: "50vmax",
+        position: "absolute", bottom: 50, left: -80, width: 300, height: 300,
         borderRadius: "50%",
-        background: `radial-gradient(circle at 70% 70%, ${c}15, transparent 70%)`,
+        background: `radial-gradient(circle at 70% 70%, ${c}40, transparent 70%)`,
+        animation: "float 12s infinite ease-in-out reverse",
       }} />
     </div>
   );
 }
 
-// ─── Card Component (Mobile Optimized) ─────────────────────────────────────
+// ─── Card Component with Hover Effects ─────────────────────────────────────
 
-function Card({ children, color, onClick, elevated = false, style = {} }) {
-  const [isPressed, setIsPressed] = useState(false);
+function Card({ children, color, onClick, className = "", style = {} }) {
+  const [isHovered, setIsHovered] = useState(false);
   
-  const baseStyle = {
-    background: elevated ? BRAND.colors.surfaceElevated : BRAND.colors.surface,
-    borderRadius: BRAND.radius.lg,
-    padding: BRAND.spacing.md,
-    border: `1px solid ${color || BRAND.colors.divider}`,
-    transition: "all 0.2s ease",
-    cursor: onClick ? "pointer" : "default",
-    WebkitTapHighlightColor: "transparent",
-    transform: isPressed && onClick ? "scale(0.98)" : "scale(1)",
-    opacity: isPressed && onClick ? 0.9 : 1,
-    boxShadow: elevated ? BRAND.shadows.md : "none",
-    ...style,
-  };
-
   return (
     <div
-      onTouchStart={() => onClick && setIsPressed(true)}
-      onTouchEnd={() => onClick && setIsPressed(false)}
-      onTouchCancel={() => onClick && setIsPressed(false)}
-      onMouseDown={() => onClick && setIsPressed(true)}
-      onMouseUp={() => onClick && setIsPressed(false)}
-      onMouseLeave={() => onClick && setIsPressed(false)}
+      className={`hover-lift ${className}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
-      style={baseStyle}
+      style={{
+        background: BRAND.colors.surface,
+        border: `1px solid ${color || PHASES.luteal.color}30`,
+        borderRadius: 24,
+        padding: 20,
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        cursor: onClick ? "pointer" : "default",
+        transform: isHovered && onClick ? "translateY(-4px)" : "translateY(0)",
+        boxShadow: isHovered && onClick ? `0 20px 30px -10px ${color || PHASES.luteal.color}30` : "0 10px 20px -5px rgba(0,0,0,0.3)",
+        ...style,
+      }}
     >
       {children}
     </div>
   );
 }
 
-// ─── Button Component (Mobile Optimized) ───────────────────────────────────
+// ─── Button Component ─────────────────────────────────────────────────────
 
-function Button({ 
-  children, 
-  variant = "primary", 
-  onClick, 
-  disabled, 
-  icon, 
-  fullWidth,
-  size = "md",
-  style = {} 
-}) {
-  const [isPressed, setIsPressed] = useState(false);
+function Button({ children, variant = "primary", onClick, disabled, icon, fullWidth, style = {} }) {
+  const [isHovered, setIsHovered] = useState(false);
   
   const variants = {
     primary: {
       background: BRAND.colors.primary,
       color: "#ffffff",
       border: "none",
-      pressedBg: "#8a75f0",
+      hoverBg: "#8a75f0",
     },
     secondary: {
       background: "transparent",
       color: BRAND.colors.text,
       border: `1px solid ${BRAND.colors.primary}40`,
-      pressedBg: `${BRAND.colors.primary}20`,
+      hoverBg: `${BRAND.colors.primary}10`,
     },
     accent: {
       background: BRAND.colors.secondary,
       color: "#1a1a2e",
       border: "none",
-      pressedBg: "#e594c4",
+      hoverBg: "#f594c4",
     },
     danger: {
       background: "rgba(248, 113, 113, 0.1)",
       color: "#f87171",
       border: "1px solid #f8717140",
-      pressedBg: "rgba(248, 113, 113, 0.2)",
+      hoverBg: "rgba(248, 113, 113, 0.2)",
     },
-    ghost: {
-      background: "transparent",
-      color: BRAND.colors.textSecondary,
-      border: "none",
-      pressedBg: "rgba(255,255,255,0.05)",
-    },
-  };
-  
-  const sizes = {
-    sm: { padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`, fontSize: BRAND.typography.caption1.fontSize },
-    md: { padding: `${BRAND.spacing.sm}px ${BRAND.spacing.md}px`, fontSize: BRAND.typography.subhead.fontSize },
-    lg: { padding: `${BRAND.spacing.md}px ${BRAND.spacing.lg}px`, fontSize: BRAND.typography.body.fontSize },
   };
   
   const v = variants[variant];
-  const s = sizes[size];
   
   return (
     <button
-      onTouchStart={() => !disabled && setIsPressed(true)}
-      onTouchEnd={() => !disabled && setIsPressed(false)}
-      onTouchCancel={() => !disabled && setIsPressed(false)}
-      onMouseDown={() => !disabled && setIsPressed(true)}
-      onMouseUp={() => !disabled && setIsPressed(false)}
-      onMouseLeave={() => !disabled && setIsPressed(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
       disabled={disabled}
       style={{
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: BRAND.spacing.xs,
-        padding: s.padding,
-        borderRadius: BRAND.radius.pill,
-        fontSize: s.fontSize,
-        fontWeight: "600",
-        lineHeight: 1.2,
+        gap: 8,
+        padding: "10px 20px",
+        borderRadius: 40,
+        fontSize: 14,
+        fontWeight: 600,
         fontFamily: BRAND.fonts.body,
         cursor: disabled ? "default" : "pointer",
-        transition: "all 0.1s ease",
-        background: isPressed && !disabled ? v.pressedBg : v.background,
+        transition: "all 0.2s ease",
+        background: isHovered && !disabled ? v.hoverBg : v.background,
         color: v.color,
         border: v.border,
         opacity: disabled ? 0.4 : 1,
         width: fullWidth ? "100%" : "auto",
-        minHeight: size === "lg" ? 48 : size === "md" ? 40 : 32,
-        WebkitTapHighlightColor: "transparent",
-        transform: isPressed && !disabled ? "scale(0.98)" : "scale(1)",
         ...style,
       }}
     >
-      {icon && <span style={{ width: 20, height: 20 }}>{icon}</span>}
+      {icon && <span style={{ display: "flex", alignItems: "center" }}>{icon}</span>}
       {children}
     </button>
   );
 }
 
-// ─── Segmented Control (iOS-style) ─────────────────────────────────────────
-
-function SegmentedControl({ options, value, onChange, color }) {
-  return (
-    <div style={{
-      display: "flex",
-      background: BRAND.colors.surface,
-      borderRadius: BRAND.radius.pill,
-      padding: 4,
-      border: `1px solid ${BRAND.colors.divider}`,
-    }}>
-      {options.map(option => {
-        const isSelected = value === option.id;
-        return (
-          <button
-            key={option.id}
-            onClick={() => onChange(option.id)}
-            style={{
-              flex: 1,
-              border: "none",
-              background: isSelected ? color || BRAND.colors.primary : "transparent",
-              borderRadius: BRAND.radius.pill - 2,
-              padding: `${BRAND.spacing.sm}px ${BRAND.spacing.md}px`,
-              color: isSelected ? "#ffffff" : BRAND.colors.textSecondary,
-              fontSize: BRAND.typography.subhead.fontSize,
-              fontWeight: isSelected ? "600" : "400",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: BRAND.spacing.xs,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            {option.icon && <span style={{ width: 18, height: 18 }}>{option.icon}</span>}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── AI Insight ───────────────────────────────────────────────────────────────
+// ─── AI Insight with Animation ───────────────────────────────────────────────
 
 function AIInsight({ profile }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
   const phase = getPhaseFromDay(day);
@@ -503,60 +350,83 @@ function AIInsight({ profile }) {
   const generate = useCallback(async () => {
     setLoading(true);
     setText("");
-    
-    // Simulate AI response
+    const symptoms = (profile.symptoms || []).join(", ") || "none";
+    const sessions = (profile.intimacyLog || []).length;
+    const nextPeriodDays = daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength));
+    const nextOvDays = daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength));
+
+    // Simulate AI response (replace with actual API call)
     setTimeout(() => {
-      setText(`Day ${day} of her cycle. ${CYCLE_TIPS[phase].note} ${CYCLE_TIPS[phase].safe ? '✅ Safe for unprotected intimacy.' : '⚠️ Caution - fertile window.'}`);
+      setText(`✨ Day ${day} of her cycle. ${symptoms ? `She's experiencing ${symptoms}. ` : ''}Energy is ${CYCLE_TIPS[phase].energy.toLowerCase()}. ${CYCLE_TIPS[phase].safe ? '✅ Safe for unprotected intimacy.' : '⚠️ Caution - fertile window.'}`);
       setLoading(false);
-    }, 800);
+      setIsVisible(true);
+    }, 1000);
   }, [profile, day, phase]);
 
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => setIsVisible(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
+
   return (
-    <Card color={PD.color} elevated style={{ marginTop: BRAND.spacing.md }}>
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        marginBottom: BRAND.spacing.sm 
-      }}>
+    <Card color={PD.color} style={{ marginTop: 16, position: "relative", overflow: "hidden" }}>
+      {isVisible && (
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: `linear-gradient(90deg, ${PD.color}, ${BRAND.colors.secondary})`,
+          animation: "pulseGlow 2s infinite",
+        }} />
+      )}
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <span style={{ 
-          ...BRAND.typography.caption1,
-          fontWeight: "600",
-          color: BRAND.colors.textSecondary,
+          fontSize: 12, 
+          fontWeight: 600, 
+          letterSpacing: 1, 
+          color: BRAND.colors.textMuted,
           textTransform: "uppercase",
-          letterSpacing: 0.5,
         }}>
-          AI Insight
+          ✦ AI Insight
         </span>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="secondary"
           onClick={generate}
           disabled={loading}
-          icon={loading ? <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid currentColor", borderTopColor: "transparent", animation: "pulse 1s infinite" }} /> : null}
+          size="small"
+          style={{ padding: "6px 16px" }}
         >
-          {loading ? "Thinking" : "Generate"}
+          {loading ? "Thinking..." : "Generate"}
         </Button>
       </div>
       
-      <div style={{ minHeight: 48 }}>
+      <div style={{
+        minHeight: 60,
+        transition: "all 0.3s ease",
+      }}>
         {text ? (
           <p style={{ 
-            ...BRAND.typography.footnote,
-            color: BRAND.colors.textSecondary,
+            fontSize: 14, 
+            color: BRAND.colors.textSoft, 
+            lineHeight: 1.6, 
             margin: 0,
-            lineHeight: 1.5,
+            animation: "fadeIn 0.5s ease",
           }}>
             {text}
           </p>
         ) : (
           <p style={{ 
-            ...BRAND.typography.caption1,
-            color: BRAND.colors.textTertiary,
-            margin: 0,
-            fontStyle: "italic",
+            fontSize: 13, 
+            color: BRAND.colors.textMuted, 
+            margin: 0, 
+            fontStyle: "italic" 
           }}>
-            Tap Generate for personalized insights
+            Tap Generate for personalized cycle insights
           </p>
         )}
       </div>
@@ -564,20 +434,27 @@ function AIInsight({ profile }) {
   );
 }
 
-// ─── Cycle Ring (Mobile Optimized) ─────────────────────────────────────────
+// ─── Cycle Ring with Animation ───────────────────────────────────────────────
 
-function CycleRing({ day, cycleLength, size = 160 }) {
+function CycleRing({ day, cycleLength, size = 180 }) {
   const cx = size / 2, cy = size / 2;
   const r = size * 0.36;
   const strokeW = size * 0.1;
   const circ = 2 * Math.PI * r;
   const phase = getPhaseFromDay(day);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    setAnimate(true);
+    const timer = setTimeout(() => setAnimate(false), 1000);
+    return () => clearTimeout(timer);
+  }, [day]);
 
   const segments = [
-    { name: "menstruation", start: 0, end: 5, color: "#f87171" },
-    { name: "follicular", start: 5, end: 13, color: "#fbbf24" },
-    { name: "ovulation", start: 13, end: 16, color: "#34d399" },
-    { name: "luteal", start: 16, end: cycleLength, color: "#c084fc" },
+    { name: "menstruation", start: 0,  end: 5,           color: "#f87171" },
+    { name: "follicular",   start: 5,  end: 13,          color: "#fbbf24" },
+    { name: "ovulation",    start: 13, end: 16,          color: "#34d399" },
+    { name: "luteal",       start: 16, end: cycleLength,  color: "#c084fc" },
   ];
 
   function segProps(startDay, endDay) {
@@ -593,12 +470,25 @@ function CycleRing({ day, cycleLength, size = 160 }) {
   const dotY = cy + r * Math.sin(dotAngle);
 
   return (
-    <svg width={size} height={size} style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}>
+    <svg width={size} height={size} style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.3))" }}>
+      <style>{`
+        @keyframes rotateIn {
+          from { transform: rotate(-90deg) scale(0.8); opacity: 0; }
+          to { transform: rotate(0) scale(1); opacity: 1; }
+        }
+        .ring-segment {
+          transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .ring-dot {
+          transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+      `}</style>
+      
       {/* Track */}
       <circle 
         cx={cx} cy={cy} r={r} 
         fill="none" 
-        stroke={BRAND.colors.divider} 
+        stroke="rgba(255,255,255,0.06)" 
         strokeWidth={strokeW} 
       />
       
@@ -614,10 +504,11 @@ function CycleRing({ day, cycleLength, size = 160 }) {
             stroke={seg.color}
             strokeWidth={strokeW}
             strokeDasharray={`${dashLen} ${gap}`}
-            strokeDashoffset={offset}
+            strokeDashoffset={animate && isCurrent ? offset + 10 : offset}
             strokeLinecap="round"
-            opacity={isCurrent ? 1 : 0.3}
-            style={{ transition: "stroke-dashoffset 0.5s ease" }}
+            opacity={isCurrent ? 1 : 0.2}
+            className="ring-segment"
+            style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
           />
         );
       })}
@@ -625,29 +516,28 @@ function CycleRing({ day, cycleLength, size = 160 }) {
       {/* Current day dot */}
       <circle 
         cx={dotX} cy={dotY} r={size * 0.055} 
-        fill="#ffffff"
-        style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
+        fill="white" 
+        className="ring-dot"
+        style={{
+          transition: "all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+          filter: "drop-shadow(0 0 10px white)",
+        }}
       />
       <circle 
         cx={dotX} cy={dotY} r={size * 0.03} 
         fill={PHASES[phase].color}
+        className="ring-dot"
       />
       
       {/* Center text */}
-      <text x={cx} y={cy - 6} textAnchor="middle" fill={BRAND.colors.text} fontSize={size * 0.16} fontWeight="700" fontFamily={BRAND.fonts.heading}>
-        {day}
-      </text>
-      <text x={cx} y={cy + 12} textAnchor="middle" fill={BRAND.colors.textTertiary} fontSize={size * 0.07} fontFamily={BRAND.fonts.body}>
-        of {cycleLength}
-      </text>
-      <text x={cx} y={cy + 26} textAnchor="middle" fill={PHASES[phase].color} fontSize={size * 0.07} fontWeight="600" fontFamily={BRAND.fonts.body}>
-        {PHASES[phase].short}
-      </text>
+      <text x={cx} y={cy - 8} textAnchor="middle" fill="white" fontSize={size * 0.16} fontWeight={700} fontFamily={BRAND.fonts.heading}>{day}</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fill={BRAND.colors.textMuted} fontSize={size * 0.07} fontFamily={BRAND.fonts.body}>of {cycleLength}</text>
+      <text x={cx} y={cy + 26} textAnchor="middle" fill={PHASES[phase].color} fontSize={size * 0.075} fontWeight={600} fontFamily={BRAND.fonts.body}>{PHASES[phase].short}</text>
     </svg>
   );
 }
 
-// ─── Month Calendar (Mobile Optimized) ─────────────────────────────────────
+// ─── Month Calendar ───────────────────────────────────────────────────────────
 
 function MonthCalendar({ profile, monthOffset = 0 }) {
   const base = new Date();
@@ -672,34 +562,23 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
     return (profile.intimacyLog || []).includes(dateStr);
   }
 
-  const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
-
   return (
     <div>
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(7, 1fr)", 
-        gap: 2, 
-        marginBottom: BRAND.spacing.sm 
-      }}>
-        {weekdays.map(d => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
+        {["S", "M", "T", "W", "T", "F", "S"].map(d => (
           <div key={d} style={{ 
             textAlign: "center", 
-            ...BRAND.typography.caption2,
-            color: BRAND.colors.textTertiary, 
-            fontWeight: "500",
-            padding: BRAND.spacing.xs,
+            fontSize: 12, 
+            color: BRAND.colors.textMuted, 
+            fontWeight: 500,
+            padding: "4px 0",
           }}>
             {d}
           </div>
         ))}
       </div>
       
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(7, 1fr)", 
-        gap: 2 
-      }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
         {Array(firstDay).fill(null).map((_, i) => (
           <div key={"empty" + i} style={{ aspectRatio: "1" }} />
         ))}
@@ -710,27 +589,33 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
           const col = PHASES[ph].color;
           const isToday = isCurrentMonth && d === today.getDate();
           const hasIntimacy = isIntimacyDay(d);
+          const [isHovered, setIsHovered] = useState(false);
           
           return (
             <div
               key={d}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
               style={{
                 aspectRatio: "1",
-                borderRadius: BRAND.radius.sm,
+                borderRadius: 12,
                 position: "relative",
-                background: isToday ? col : "transparent",
-                border: isToday ? "none" : `1px solid ${col}30`,
+                background: isToday ? `linear-gradient(135deg, ${col}, ${col}80)` : `${col}15`,
+                border: `1px solid ${isToday ? col : col}30`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.1s ease",
-                WebkitTapHighlightColor: "transparent",
+                transform: isHovered ? "scale(1.1)" : "scale(1)",
+                transition: "all 0.2s ease",
+                cursor: "pointer",
+                boxShadow: isHovered ? `0 5px 15px ${col}40` : "none",
+                zIndex: isHovered ? 2 : 1,
               }}
             >
               <span style={{ 
-                ...BRAND.typography.caption1,
-                color: isToday ? "#111" : BRAND.colors.text, 
-                fontWeight: isToday ? "600" : "400",
+                fontSize: 13, 
+                color: isToday ? "#111" : BRAND.colors.textSoft, 
+                fontWeight: isToday ? 700 : 400,
               }}>
                 {d}
               </span>
@@ -740,6 +625,7 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
                   bottom: 2, 
                   right: 2, 
                   fontSize: 8,
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
                 }}>
                   ❤️
                 </span>
@@ -752,7 +638,7 @@ function MonthCalendar({ profile, monthOffset = 0 }) {
   );
 }
 
-// ─── Profile Detail (Mobile First) ─────────────────────────────────────────
+// ─── Profile Detail ───────────────────────────────────────────────────────────
 
 function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [tab, setTab] = useState("overview");
@@ -761,7 +647,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [showLogModal, setShowLogModal] = useState(false);
   const [logDate, setLogDate] = useState(todayStr());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const safeArea = useSafeArea();
+  const [animateHeader, setAnimateHeader] = useState(false);
 
   const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
   const phase = getPhaseFromDay(day);
@@ -772,10 +658,16 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const daysToNextPeriod = daysUntil(nextPeriod);
   const daysToOvulation = daysUntil(nextOvulation);
 
+  useEffect(() => {
+    setAnimateHeader(true);
+    const timer = setTimeout(() => setAnimateHeader(false), 500);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
   const tabs = [
-    { id: "overview", label: "Overview", icon: <Icons.Chart size={18} /> },
-    { id: "calendar", label: "Calendar", icon: <Icons.Calendar size={18} /> },
-    { id: "insights", label: "Insights", icon: <Icons.Sparkles size={18} /> },
+    { id: "overview", label: "Overview", icon: <Icons.Chart /> },
+    { id: "calendar", label: "Calendar", icon: <Icons.Calendar /> },
+    { id: "insights", label: "Insights", icon: <Icons.Sparkles /> },
   ];
 
   return (
@@ -785,116 +677,126 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
       color: BRAND.colors.text, 
       fontFamily: BRAND.fonts.body,
       position: "relative",
-      paddingBottom: safeArea.bottom,
     }}>
       <style>{animations}</style>
       <BgDecor phase={phase} />
       
       <div style={{ 
         position: "relative", 
-        zIndex: 2,
-        padding: `${safeArea.top + BRAND.spacing.md}px ${BRAND.spacing.md}px ${BRAND.spacing.xl}px`,
-        maxWidth: 480,
-        margin: "0 auto",
+        zIndex: 2, 
+        maxWidth: 480, 
+        margin: "0 auto", 
+        padding: "0 16px 80px",
+        animation: "fadeIn 0.5s ease",
       }}>
 
-        {/* Top Bar */}
+        {/* Top bar */}
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center", 
-          marginBottom: BRAND.spacing.lg,
+          padding: "20px 0 16px",
+          animation: "fadeIn 0.5s ease",
         }}>
-          <Button variant="ghost" size="sm" onClick={onBack} icon={<Icons.ChevronLeft size={20} />}>
+          <Button variant="secondary" onClick={onBack} icon="←">
             Back
           </Button>
           
-          <div style={{ display: "flex", gap: BRAND.spacing.xs }}>
+          <div style={{ display: "flex", gap: 8 }}>
             <Button 
-              variant="ghost" 
-              size="sm" 
+              variant="secondary" 
               onClick={() => onUpdate({ ...profile, hidden: !profile.hidden })}
+              style={{ padding: "8px 14px" }}
             >
-              {profile.hidden ? "Show" : "Hide"}
+              {profile.hidden ? "👁 Show" : "🙈 Hide"}
             </Button>
             <Button 
-              variant="ghost" 
-              size="sm" 
+              variant="danger" 
               onClick={() => setShowDeleteConfirm(true)}
+              style={{ padding: "8px 14px" }}
             >
-              Delete
+              🗑 Delete
             </Button>
           </div>
         </div>
 
-        {/* Profile Header Card */}
-        <Card color={PD.color} elevated style={{ marginBottom: BRAND.spacing.lg }}>
-          <div style={{ display: "flex", gap: BRAND.spacing.md, marginBottom: BRAND.spacing.md }}>
+        {/* Hero card */}
+        <Card 
+          color={PD.color} 
+          style={{ 
+            marginBottom: 20,
+            transform: animateHeader ? "scale(1.02)" : "scale(1)",
+            transition: "transform 0.3s ease",
+          }}
+        >
+          <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20 }}>
             <div style={{
-              width: 72, height: 72, borderRadius: BRAND.radius.lg,
+              width: 72, height: 72, borderRadius: 24,
               background: `linear-gradient(135deg, ${PD.color}40, ${PD.color}10)`,
               border: `2px solid ${PD.color}`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 32,
+              fontSize: 32, flexShrink: 0,
+              transition: "all 0.3s ease",
+              boxShadow: `0 10px 20px ${PD.color}30`,
             }}>
               {profile.avatar}
             </div>
             
             <div style={{ flex: 1 }}>
-              <h1 style={{ 
-                ...BRAND.typography.title3,
-                margin: 0,
+              <h2 style={{ 
+                margin: "0 0 6px", 
+                fontSize: 28, 
+                fontWeight: 700, 
+                fontFamily: BRAND.fonts.heading,
                 color: BRAND.colors.text,
               }}>
                 {profile.name}
-              </h1>
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: BRAND.spacing.xs,
+              </h2>
+              <div style={{ 
+                display: "inline-flex", 
+                alignItems: "center", 
+                gap: 6, 
                 background: `${PD.color}20`,
-                borderRadius: BRAND.radius.pill,
-                padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
+                borderRadius: 30, 
+                padding: "6px 14px",
                 border: `1px solid ${PD.color}40`,
-                marginTop: BRAND.spacing.xs,
               }}>
                 <span style={{ fontSize: 14 }}>{PD.emoji}</span>
-                <span style={{ 
-                  ...BRAND.typography.caption1,
-                  color: PD.color, 
-                  fontWeight: "600" 
-                }}>
+                <span style={{ fontSize: 13, color: PD.color, fontWeight: 600 }}>
                   {PD.label} · Day {day}
                 </span>
               </div>
             </div>
             
-            <CycleRing day={day} cycleLength={profile.cycleLength} size={72} />
+            <CycleRing day={day} cycleLength={profile.cycleLength} size={80} />
           </div>
 
-          {/* Risk Banner */}
+          {/* Risk banner */}
           <div style={{
             background: tips.safe ? `${BRAND.colors.accent}15` : `${PD.color}15`,
-            borderRadius: BRAND.radius.md,
-            padding: BRAND.spacing.md,
+            border: `1px solid ${tips.safe ? BRAND.colors.accent : PD.color}40`,
+            borderRadius: 16,
+            padding: "14px 18px",
             display: "flex",
-            gap: BRAND.spacing.sm,
+            gap: 12,
             alignItems: "flex-start",
           }}>
-            <span style={{ fontSize: 20 }}>{tips.safe ? "✅" : "⚠️"}</span>
+            <span style={{ fontSize: 24 }}>{tips.safe ? "✅" : "⚠️"}</span>
             <div>
               <div style={{ 
-                ...BRAND.typography.caption1,
-                fontWeight: "700", 
+                fontSize: 12, 
+                fontWeight: 700, 
                 color: tips.safe ? BRAND.colors.accent : PD.color,
-                marginBottom: 2,
+                marginBottom: 4,
+                textTransform: "uppercase",
+                letterSpacing: 1,
               }}>
                 {tips.risk}
               </div>
               <div style={{ 
-                ...BRAND.typography.footnote,
-                color: BRAND.colors.textSecondary, 
-                lineHeight: 1.4,
+                fontSize: 13, 
+                color: BRAND.colors.textMuted, 
+                lineHeight: 1.6 
               }}>
                 {tips.note}
               </div>
@@ -902,427 +804,353 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           </div>
         </Card>
 
-        {/* Segmented Control */}
-        <SegmentedControl
-          options={tabs}
-          value={tab}
-          onChange={setTab}
-          color={PD.color}
-        />
+        {/* Tabs */}
+        <div style={{ 
+          display: "flex", 
+          background: `${BRAND.colors.surface}80`,
+          borderRadius: 40, 
+          padding: 4, 
+          marginBottom: 20,
+          backdropFilter: "blur(10px)",
+          border: `1px solid ${BRAND.colors.primary}20`,
+        }}>
+          {tabs.map(t => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  borderRadius: 36,
+                  padding: "10px",
+                  background: isActive ? `linear-gradient(135deg, ${PD.color}, ${PD.color}cc)` : "transparent",
+                  color: isActive ? "#ffffff" : BRAND.colors.textMuted,
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ width: 18, height: 18 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Tab Content */}
-        <div style={{ marginTop: BRAND.spacing.lg }}>
-          {tab === "overview" && (
-            <div className="slide-up">
-              {/* Stats Grid */}
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "1fr 1fr", 
-                gap: BRAND.spacing.sm, 
-                marginBottom: BRAND.spacing.md 
-              }}>
-                {[
-                  { label: "Period in", val: daysToNextPeriod <= 0 ? "Today" : `${daysToNextPeriod}d`, sub: fmtDate(nextPeriod), color: "#f87171" },
-                  { label: "Ovulation", val: daysToOvulation <= 0 ? "Now" : `${daysToOvulation}d`, sub: fmtDate(nextOvulation), color: "#34d399" },
-                  { label: "Energy", val: tips.energy, sub: "Current phase", color: "#fbbf24" },
-                  { label: "Mood", val: tips.mood, sub: "Expected", color: "#c084fc" },
-                ].map(s => (
-                  <Card key={s.label} color={s.color} style={{ padding: BRAND.spacing.md }}>
-                    <div style={{ 
-                      ...BRAND.typography.caption2,
-                      fontWeight: "600", 
-                      color: BRAND.colors.textTertiary, 
-                      marginBottom: BRAND.spacing.xs,
-                      textTransform: "uppercase",
-                    }}>
-                      {s.label}
-                    </div>
-                    <div style={{ 
-                      ...BRAND.typography.title3,
-                      color: s.color, 
-                      marginBottom: 2,
-                    }}>
-                      {s.val}
-                    </div>
-                    <div style={{ 
-                      ...BRAND.typography.caption2,
-                      color: BRAND.colors.textTertiary 
-                    }}>
-                      {s.sub}
-                    </div>
-                  </Card>
-                ))}
+        {tab === "overview" && (
+          <div className="fade-in">
+            {/* Cycle ring */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+              <CycleRing day={day} cycleLength={profile.cycleLength} size={220} />
+            </div>
+
+            {/* Stats grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              {[
+                { label: "Period in", val: daysToNextPeriod <= 0 ? "Today" : `${daysToNextPeriod} days`, sub: fmtDate(nextPeriod), color: "#f87171" },
+                { label: "Ovulation", val: daysToOvulation <= 0 ? "Now" : daysToOvulation === 1 ? "Tomorrow" : `${daysToOvulation} days`, sub: fmtDate(nextOvulation), color: "#34d399" },
+                { label: "Energy", val: tips.energy, sub: "Current phase", color: "#fbbf24" },
+                { label: "Mood", val: tips.mood, sub: "Expected", color: "#c084fc" },
+              ].map(s => (
+                <Card key={s.label} color={s.color} style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: BRAND.colors.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 4, fontFamily: BRAND.fonts.heading }}>
+                    {s.val}
+                  </div>
+                  <div style={{ fontSize: 12, color: BRAND.colors.textMuted }}>
+                    {s.sub}
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Libido stat */}
+            <Card color={PD.color} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 13, color: BRAND.colors.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                  Libido Level
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: PD.color }}>
+                  {tips.libido}
+                </span>
               </div>
+            </Card>
 
-              {/* Libido Card */}
-              <Card color={PD.color} style={{ marginBottom: BRAND.spacing.md }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ 
-                    ...BRAND.typography.caption1,
-                    fontWeight: "600",
-                    color: BRAND.colors.textSecondary,
-                    textTransform: "uppercase",
-                  }}>
-                    Libido
-                  </span>
-                  <span style={{ 
-                    ...BRAND.typography.subhead,
-                    fontWeight: "700",
-                    color: PD.color 
-                  }}>
-                    {tips.libido}
-                  </span>
+            {/* Symptoms */}
+            <Card color={PD.color} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: BRAND.colors.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>
+                  Symptoms
+                </span>
+                <Button variant="secondary" onClick={() => setEditingSymptoms(!editingSymptoms)}>
+                  {editingSymptoms ? "Done" : "Edit"}
+                </Button>
+              </div>
+              
+              {editingSymptoms ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {SYMPTOMS.map(s => {
+                    const active = (profile.symptoms || []).includes(s);
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          const current = profile.symptoms || [];
+                          const updated = current.includes(s)
+                            ? current.filter(x => x !== s)
+                            : [...current, s];
+                          onUpdate({ ...profile, symptoms: updated });
+                        }}
+                        style={{
+                          background: active ? `${PD.color}30` : "rgba(255,255,255,0.05)",
+                          border: `1px solid ${active ? PD.color : "rgba(255,255,255,0.1)"}`,
+                          borderRadius: 30,
+                          padding: "8px 16px",
+                          color: active ? PD.color : BRAND.colors.textMuted,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
                 </div>
-              </Card>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(profile.symptoms || []).length === 0 ? (
+                    <span style={{ fontSize: 13, color: BRAND.colors.textMuted, fontStyle: "italic" }}>
+                      No symptoms logged
+                    </span>
+                  ) : (
+                    (profile.symptoms || []).map(s => (
+                      <span
+                        key={s}
+                        style={{
+                          background: `${PD.color}20`,
+                          border: `1px solid ${PD.color}40`,
+                          borderRadius: 30,
+                          padding: "6px 14px",
+                          fontSize: 13,
+                          color: PD.color,
+                        }}
+                      >
+                        {s}
+                      </span>
+                    ))
+                  )}
+                </div>
+              )}
+            </Card>
 
-              {/* Symptoms Section */}
-              <Card color={PD.color} style={{ marginBottom: BRAND.spacing.md }}>
-                <div style={{ 
+            {/* Quick actions */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <Button
+                variant="accent"
+                onClick={() => onUpdate({ ...profile, lastPeriodStart: todayStr() })}
+                icon="🩸"
+                fullWidth
+              >
+                Period Started
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => setShowLogModal(true)}
+                icon="❤️"
+                fullWidth
+              >
+                Log Intimacy
+              </Button>
+            </div>
+
+            <AIInsight profile={profile} />
+          </div>
+        )}
+
+        {tab === "calendar" && (
+          <div className="fade-in">
+            <Card color={PD.color}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <Button variant="secondary" onClick={() => setMonthOffset(m => m - 1)} icon="←" />
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: BRAND.fonts.heading }}>
+                    {new Date().toLocaleString("default", { month: "long", year: "numeric" })}
+                  </div>
+                </div>
+                <Button variant="secondary" onClick={() => setMonthOffset(m => m + 1)} icon="→" />
+              </div>
+              
+              <MonthCalendar profile={profile} monthOffset={monthOffset} />
+            </Card>
+
+            {/* Upcoming events */}
+            <Card color={PD.color} style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: BRAND.colors.textMuted, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+                Upcoming Events
+              </div>
+              {[
+                { label: "Next Period", date: nextPeriod, color: "#f87171", icon: "🩸" },
+                { label: "Ovulation", date: nextOvulation, color: "#34d399", icon: "✨" },
+              ].map(ev => (
+                <div key={ev.label} style={{ 
                   display: "flex", 
                   justifyContent: "space-between", 
                   alignItems: "center", 
-                  marginBottom: BRAND.spacing.md 
+                  padding: "12px 0",
+                  borderBottom: "1px solid rgba(255,255,255,0.1)",
                 }}>
-                  <span style={{ 
-                    ...BRAND.typography.caption1,
-                    fontWeight: "600",
-                    color: BRAND.colors.textSecondary,
-                    textTransform: "uppercase",
-                  }}>
-                    Symptoms
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={() => setEditingSymptoms(!editingSymptoms)}>
-                    {editingSymptoms ? "Done" : "Edit"}
-                  </Button>
-                </div>
-                
-                {editingSymptoms ? (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: BRAND.spacing.xs }}>
-                    {SYMPTOMS.map(s => {
-                      const active = (profile.symptoms || []).includes(s);
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => {
-                            const current = profile.symptoms || [];
-                            const updated = current.includes(s)
-                              ? current.filter(x => x !== s)
-                              : [...current, s];
-                            onUpdate({ ...profile, symptoms: updated });
-                          }}
-                          className="tap-feedback"
-                          style={{
-                            background: active ? `${PD.color}30` : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${active ? PD.color : "rgba(255,255,255,0.1)"}`,
-                            borderRadius: BRAND.radius.pill,
-                            padding: `${BRAND.spacing.xs}px ${BRAND.spacing.md}px`,
-                            color: active ? PD.color : BRAND.colors.textSecondary,
-                            ...BRAND.typography.caption1,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>{ev.icon}</span>
+                    <span style={{ color: ev.color, fontWeight: 600 }}>{ev.label}</span>
                   </div>
-                ) : (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: BRAND.spacing.xs }}>
-                    {(profile.symptoms || []).length === 0 ? (
-                      <span style={{ 
-                        ...BRAND.typography.caption1,
-                        color: BRAND.colors.textTertiary, 
-                        fontStyle: "italic" 
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ color: BRAND.colors.textSoft, fontSize: 14 }}>{fmtDate(ev.date)}</div>
+                    <div style={{ color: BRAND.colors.textMuted, fontSize: 12 }}>
+                      {daysUntil(ev.date)} days away
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+        )}
+
+        {tab === "insights" && (
+          <div className="fade-in">
+            {Object.entries(PHASES).map(([key, val]) => {
+              const t = CYCLE_TIPS[key];
+              const isCurrent = phase === key;
+              
+              return (
+                <Card
+                  key={key}
+                  color={val.color}
+                  style={{
+                    marginBottom: 12,
+                    border: isCurrent ? `2px solid ${val.color}` : `1px solid ${val.color}20`,
+                    transform: isCurrent ? "scale(1.02)" : "scale(1)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 48, height: 48, borderRadius: 16,
+                        background: `${val.color}20`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 24,
                       }}>
-                        No symptoms logged
+                        {val.emoji}
+                      </div>
+                      <div>
+                        <div style={{ color: val.color, fontSize: 16, fontWeight: 700, fontFamily: BRAND.fonts.heading }}>
+                          {val.label}
+                        </div>
+                        <div style={{ color: BRAND.colors.textMuted, fontSize: 12 }}>
+                          Day {val.days[0]}–{val.days[1]}
+                        </div>
+                      </div>
+                    </div>
+                    {isCurrent && (
+                      <span style={{
+                        background: val.color,
+                        borderRadius: 30,
+                        padding: "4px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#111",
+                      }}>
+                        Current
                       </span>
-                    ) : (
-                      (profile.symptoms || []).map(s => (
-                        <span
-                          key={s}
-                          style={{
-                            background: `${PD.color}20`,
-                            border: `1px solid ${PD.color}40`,
-                            borderRadius: BRAND.radius.pill,
-                            padding: `${BRAND.spacing.xs}px ${BRAND.spacing.md}px`,
-                            ...BRAND.typography.caption1,
-                            color: PD.color,
-                          }}
-                        >
-                          {s}
-                        </span>
-                      ))
                     )}
                   </div>
-                )}
-              </Card>
-
-              {/* Quick Actions */}
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "1fr 1fr", 
-                gap: BRAND.spacing.sm, 
-                marginBottom: BRAND.spacing.md 
-              }}>
-                <Button
-                  variant="accent"
-                  onClick={() => onUpdate({ ...profile, lastPeriodStart: todayStr() })}
-                  icon="🩸"
-                  fullWidth
-                  size="lg"
-                >
-                  Period Started
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => setShowLogModal(true)}
-                  icon="❤️"
-                  fullWidth
-                  size="lg"
-                >
-                  Log Intimacy
-                </Button>
-              </div>
-
-              <AIInsight profile={profile} />
-            </div>
-          )}
-
-          {tab === "calendar" && (
-            <div className="slide-up">
-              {/* Calendar Card */}
-              <Card color={PD.color} elevated style={{ marginBottom: BRAND.spacing.md }}>
-                <div style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "space-between", 
-                  marginBottom: BRAND.spacing.lg 
-                }}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setMonthOffset(m => m - 1)}
-                    icon={<Icons.ChevronLeft size={20} />}
-                  />
-                  <span style={{ 
-                    ...BRAND.typography.subhead,
-                    fontWeight: "600",
-                  }}>
-                    {new Date().toLocaleString("default", { month: "long", year: "numeric" })}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setMonthOffset(m => m + 1)}
-                    icon={<Icons.ChevronRight size={20} />}
-                  />
-                </div>
-                
-                <MonthCalendar profile={profile} monthOffset={monthOffset} />
-              </Card>
-
-              {/* Upcoming Events */}
-              <Card color={PD.color} elevated>
-                <div style={{ 
-                  ...BRAND.typography.caption1,
-                  fontWeight: "600",
-                  color: BRAND.colors.textSecondary, 
-                  marginBottom: BRAND.spacing.md,
-                  textTransform: "uppercase",
-                }}>
-                  Upcoming
-                </div>
-                
-                {[
-                  { label: "Next Period", date: nextPeriod, color: "#f87171", icon: "🩸", days: daysToNextPeriod },
-                  { label: "Ovulation", date: nextOvulation, color: "#34d399", icon: "✨", days: daysToOvulation },
-                ].map(ev => (
-                  <div key={ev.label} style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center", 
-                    padding: `${BRAND.spacing.sm}px 0`,
-                    borderBottom: `1px solid ${BRAND.colors.divider}`,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: BRAND.spacing.sm }}>
-                      <span style={{ fontSize: 20 }}>{ev.icon}</span>
-                      <span style={{ 
-                        ...BRAND.typography.subhead,
-                        color: ev.color, 
-                        fontWeight: "600" 
-                      }}>
-                        {ev.label}
-                      </span>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ 
-                        ...BRAND.typography.footnote,
-                        color: BRAND.colors.text 
-                      }}>
-                        {fmtDate(ev.date)}
-                      </div>
-                      <div style={{ 
-                        ...BRAND.typography.caption2,
-                        color: BRAND.colors.textTertiary 
-                      }}>
-                        {ev.days} days away
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            </div>
-          )}
-
-          {tab === "insights" && (
-            <div className="slide-up">
-              {Object.entries(PHASES).map(([key, val]) => {
-                const t = CYCLE_TIPS[key];
-                const isCurrent = phase === key;
-                
-                return (
-                  <Card
-                    key={key}
-                    color={val.color}
-                    elevated={isCurrent}
-                    style={{ 
-                      marginBottom: BRAND.spacing.sm,
-                      border: isCurrent ? `2px solid ${val.color}` : `1px solid ${val.color}30`,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: BRAND.spacing.sm }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: BRAND.spacing.sm }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: BRAND.radius.md,
-                          background: `${val.color}20`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 20,
-                        }}>
-                          {val.emoji}
-                        </div>
-                        <div>
-                          <div style={{ 
-                            ...BRAND.typography.subhead,
-                            fontWeight: "700",
-                            color: val.color 
-                          }}>
-                            {val.label}
-                          </div>
-                          <div style={{ 
-                            ...BRAND.typography.caption2,
-                            color: BRAND.colors.textTertiary 
-                          }}>
-                            Day {val.days[0]}–{val.days[1]}
-                          </div>
-                        </div>
-                      </div>
-                      {isCurrent && (
-                        <span style={{
-                          background: val.color,
-                          borderRadius: BRAND.radius.pill,
-                          padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                          ...BRAND.typography.caption2,
-                          fontWeight: "700",
-                          color: "#111",
-                        }}>
-                          Current
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p style={{ 
-                      ...BRAND.typography.footnote,
-                      color: BRAND.colors.textSecondary, 
-                      lineHeight: 1.5, 
-                      marginBottom: BRAND.spacing.md 
+                  
+                  <p style={{ fontSize: 14, color: BRAND.colors.textMuted, lineHeight: 1.6, marginBottom: 16 }}>
+                    {t.note}
+                  </p>
+                  
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{
+                      background: `${val.color}20`,
+                      border: `1px solid ${val.color}40`,
+                      borderRadius: 30,
+                      padding: "4px 12px",
+                      fontSize: 12,
+                      color: val.color,
                     }}>
-                      {t.note}
-                    </p>
-                    
-                    <div style={{ display: "flex", gap: BRAND.spacing.xs, flexWrap: "wrap" }}>
-                      <span style={{
-                        background: `${val.color}20`,
-                        border: `1px solid ${val.color}40`,
-                        borderRadius: BRAND.radius.pill,
-                        padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                        ...BRAND.typography.caption2,
-                        color: val.color,
-                      }}>
-                        ⚡ {t.energy}
-                      </span>
-                      <span style={{
-                        background: `${val.color}20`,
-                        border: `1px solid ${val.color}40`,
-                        borderRadius: BRAND.radius.pill,
-                        padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                        ...BRAND.typography.caption2,
-                        color: val.color,
-                      }}>
-                        🧠 {t.mood}
-                      </span>
-                      <span style={{
-                        background: `${val.color}20`,
-                        border: `1px solid ${val.color}40`,
-                        borderRadius: BRAND.radius.pill,
-                        padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                        ...BRAND.typography.caption2,
-                        color: val.color,
-                      }}>
-                        {t.safe ? "✅ Safe" : "⚠️ Risky"}
-                      </span>
-                    </div>
-                  </Card>
-                );
-              })}
-              
-              <AIInsight profile={profile} />
-            </div>
-          )}
-        </div>
+                      ⚡ {t.energy}
+                    </span>
+                    <span style={{
+                      background: `${val.color}20`,
+                      border: `1px solid ${val.color}40`,
+                      borderRadius: 30,
+                      padding: "4px 12px",
+                      fontSize: 12,
+                      color: val.color,
+                    }}>
+                      🧠 {t.mood}
+                    </span>
+                    <span style={{
+                      background: `${val.color}20`,
+                      border: `1px solid ${val.color}40`,
+                      borderRadius: 30,
+                      padding: "4px 12px",
+                      fontSize: 12,
+                      color: val.color,
+                    }}>
+                      {t.safe ? "✅ Safe" : "⚠️ Risky"}
+                    </span>
+                  </div>
+                </Card>
+              );
+            })}
+            
+            <AIInsight profile={profile} />
+          </div>
+        )}
       </div>
 
-      {/* Log Intimacy Modal (Bottom Sheet) */}
+      {/* Log Intimacy Modal */}
       {showLogModal && (
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "rgba(0,0,0,0.8)",
           backdropFilter: "blur(10px)",
           display: "flex",
-          alignItems: "flex-end",
+          alignItems: "center",
+          justifyContent: "center",
           zIndex: 200,
-          animation: "fadeIn 0.2s ease",
+          animation: "fadeIn 0.3s ease",
         }}>
-          <div style={{
-            background: BRAND.colors.surfaceElevated,
-            borderTopLeftRadius: BRAND.radius.xl,
-            borderTopRightRadius: BRAND.radius.xl,
-            padding: BRAND.spacing.xl,
-            width: "100%",
-            animation: "slideUp 0.3s ease",
-          }}>
-            {/* Grabber */}
-            <div style={{
-              width: 40,
-              height: 4,
-              borderRadius: 2,
-              background: BRAND.colors.divider,
-              margin: `0 auto ${BRAND.spacing.lg}px`,
-            }} />
-            
-            <h2 style={{ 
-              ...BRAND.typography.title3,
-              margin: `0 0 ${BRAND.spacing.lg}px 0`,
+          <Card color={PD.color} style={{ maxWidth: 400, width: "90%", padding: 28 }}>
+            <h3 style={{ 
+              margin: "0 0 20px", 
+              fontSize: 24, 
+              fontFamily: BRAND.fonts.heading,
+              color: BRAND.colors.text,
             }}>
-              Log Intimacy
-            </h2>
+              Log Intimacy Session
+            </h3>
             
             <label style={{ 
-              ...BRAND.typography.caption1,
-              fontWeight: "600",
-              color: BRAND.colors.textSecondary, 
+              fontSize: 12, 
+              color: BRAND.colors.textMuted, 
               display: "block", 
-              marginBottom: BRAND.spacing.xs,
+              marginBottom: 8, 
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: 1,
             }}>
               Date
             </label>
@@ -1332,19 +1160,19 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               onChange={e => setLogDate(e.target.value)}
               style={{
                 width: "100%",
-                background: BRAND.colors.background,
-                border: `1px solid ${BRAND.colors.divider}`,
-                borderRadius: BRAND.radius.md,
-                padding: BRAND.spacing.md,
+                background: "rgba(255,255,255,0.05)",
+                border: `1px solid ${PD.color}40`,
+                borderRadius: 16,
+                padding: "14px 18px",
                 color: BRAND.colors.text,
-                ...BRAND.typography.body,
+                fontSize: 14,
                 outline: "none",
-                marginBottom: BRAND.spacing.lg,
+                marginBottom: 24,
               }}
             />
             
-            <div style={{ display: "flex", gap: BRAND.spacing.sm }}>
-              <Button variant="secondary" onClick={() => setShowLogModal(false)} fullWidth size="lg">
+            <div style={{ display: "flex", gap: 12 }}>
+              <Button variant="secondary" onClick={() => setShowLogModal(false)} fullWidth>
                 Cancel
               </Button>
               <Button 
@@ -1357,12 +1185,11 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                   setShowLogModal(false);
                 }}
                 fullWidth
-                size="lg"
               >
                 Save
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -1371,33 +1198,28 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "rgba(0,0,0,0.8)",
           backdropFilter: "blur(10px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           zIndex: 200,
-          animation: "fadeIn 0.2s ease",
-          padding: BRAND.spacing.lg,
+          animation: "fadeIn 0.3s ease",
         }}>
-          <Card color="#f87171" elevated style={{ maxWidth: 340, padding: BRAND.spacing.xl }}>
-            <div style={{ fontSize: 48, textAlign: "center", marginBottom: BRAND.spacing.md }}>⚠️</div>
+          <Card color="#f87171" style={{ maxWidth: 340, padding: 28, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
             <h3 style={{ 
-              ...BRAND.typography.title3,
-              textAlign: "center",
-              margin: `0 0 ${BRAND.spacing.sm}px`,
+              margin: "0 0 12px", 
+              fontSize: 22, 
+              fontFamily: BRAND.fonts.heading,
+              color: BRAND.colors.text,
             }}>
               Delete {profile.name}?
             </h3>
-            <p style={{ 
-              ...BRAND.typography.footnote,
-              color: BRAND.colors.textSecondary, 
-              textAlign: "center",
-              marginBottom: BRAND.spacing.lg,
-            }}>
+            <p style={{ color: BRAND.colors.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
               All her data will be permanently removed.
             </p>
-            <div style={{ display: "flex", gap: BRAND.spacing.sm }}>
+            <div style={{ display: "flex", gap: 12 }}>
               <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)} fullWidth>
                 Cancel
               </Button>
@@ -1412,7 +1234,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   );
 }
 
-// ─── Add Profile (Mobile First) ──────────────────────────────────────────────
+// ─── Add Profile ──────────────────────────────────────────────────────────────
 
 function AddProfile({ onAdd, onBack }) {
   const [form, setForm] = useState({
@@ -1420,7 +1242,6 @@ function AddProfile({ onAdd, onBack }) {
     cycleLength: 28, periodLength: 5, avatar: "🌸",
   });
   const [step, setStep] = useState(1);
-  const safeArea = useSafeArea();
 
   return (
     <div style={{ 
@@ -1429,39 +1250,38 @@ function AddProfile({ onAdd, onBack }) {
       color: BRAND.colors.text, 
       fontFamily: BRAND.fonts.body,
       position: "relative",
-      paddingBottom: safeArea.bottom,
     }}>
       <style>{animations}</style>
       <BgDecor phase="luteal" />
       
       <div style={{ 
         position: "relative", 
-        zIndex: 2,
-        padding: `${safeArea.top + BRAND.spacing.md}px ${BRAND.spacing.md}px ${BRAND.spacing.xl}px`,
-        maxWidth: 480,
-        margin: "0 auto",
+        zIndex: 2, 
+        maxWidth: 480, 
+        margin: "0 auto", 
+        padding: "20px 16px 80px",
+        animation: "fadeIn 0.5s ease",
       }}>
 
-        <Button variant="ghost" size="sm" onClick={onBack} icon={<Icons.ChevronLeft size={20} />} style={{ marginBottom: BRAND.spacing.lg }}>
+        <Button variant="secondary" onClick={onBack} icon="←" style={{ marginBottom: 28 }}>
           Back
         </Button>
 
-        <h1 style={{ 
-          ...BRAND.typography.title2,
-          margin: `0 0 ${BRAND.spacing.xs}px`,
+        <h2 style={{ 
+          margin: "0 0 8px", 
+          fontSize: 36, 
+          fontFamily: BRAND.fonts.heading, 
+          fontWeight: 700,
+          color: BRAND.colors.text,
         }}>
           Add Profile
-        </h1>
-        <p style={{ 
-          ...BRAND.typography.body,
-          color: BRAND.colors.textSecondary, 
-          marginBottom: BRAND.spacing.xl,
-        }}>
+        </h2>
+        <p style={{ color: BRAND.colors.textMuted, fontSize: 15, marginBottom: 32 }}>
           Start tracking her cycle with Luna
         </p>
 
-        {/* Progress Steps */}
-        <div style={{ display: "flex", gap: BRAND.spacing.xs, marginBottom: BRAND.spacing.xl }}>
+        {/* Progress steps */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
           {[1, 2].map(i => (
             <div
               key={i}
@@ -1469,7 +1289,7 @@ function AddProfile({ onAdd, onBack }) {
                 flex: 1,
                 height: 4,
                 borderRadius: 2,
-                background: i <= step ? BRAND.colors.primary : BRAND.colors.divider,
+                background: i <= step ? BRAND.colors.primary : "rgba(255,255,255,0.1)",
                 transition: "all 0.3s ease",
               }}
             />
@@ -1477,30 +1297,31 @@ function AddProfile({ onAdd, onBack }) {
         </div>
 
         {step === 1 ? (
-          <Card color={BRAND.colors.primary} elevated style={{ padding: BRAND.spacing.lg }}>
-            <div style={{ marginBottom: BRAND.spacing.lg }}>
+          <Card color={BRAND.colors.primary} style={{ padding: 28 }}>
+            <div style={{ marginBottom: 24 }}>
               <label style={{ 
-                ...BRAND.typography.caption1,
-                fontWeight: "600",
-                color: BRAND.colors.textSecondary, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                color: BRAND.colors.textMuted, 
                 display: "block", 
-                marginBottom: BRAND.spacing.sm,
+                marginBottom: 12,
+                textTransform: "uppercase",
+                letterSpacing: 1,
               }}>
                 Choose Avatar
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: BRAND.spacing.sm }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {AVATARS.map(a => (
                   <button
                     key={a}
                     onClick={() => setForm({ ...form, avatar: a })}
-                    className="tap-feedback"
                     style={{
-                      aspectRatio: "1",
-                      fontSize: 28,
-                      borderRadius: BRAND.radius.md,
+                      width: 52, height: 52, fontSize: 26, borderRadius: 18,
                       background: form.avatar === a ? `${BRAND.colors.primary}30` : "rgba(255,255,255,0.05)",
                       border: `2px solid ${form.avatar === a ? BRAND.colors.primary : "rgba(255,255,255,0.1)"}`,
                       cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      transform: form.avatar === a ? "scale(1.1)" : "scale(1)",
                     }}
                   >
                     {a}
@@ -1509,13 +1330,15 @@ function AddProfile({ onAdd, onBack }) {
               </div>
             </div>
 
-            <div>
+            <div style={{ marginBottom: 18 }}>
               <label style={{ 
-                ...BRAND.typography.caption1,
-                fontWeight: "600",
-                color: BRAND.colors.textSecondary, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                color: BRAND.colors.textMuted, 
                 display: "block", 
-                marginBottom: BRAND.spacing.xs,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: 1,
               }}>
                 Name
               </label>
@@ -1526,26 +1349,28 @@ function AddProfile({ onAdd, onBack }) {
                 placeholder="Her name..."
                 style={{
                   width: "100%",
-                  background: BRAND.colors.background,
-                  border: `1px solid ${BRAND.colors.divider}`,
-                  borderRadius: BRAND.radius.md,
-                  padding: BRAND.spacing.md,
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${BRAND.colors.primary}40`,
+                  borderRadius: 16,
+                  padding: "14px 18px",
                   color: BRAND.colors.text,
-                  ...BRAND.typography.body,
+                  fontSize: 15,
                   outline: "none",
                 }}
               />
             </div>
           </Card>
         ) : (
-          <Card color={BRAND.colors.primary} elevated style={{ padding: BRAND.spacing.lg }}>
-            <div style={{ marginBottom: BRAND.spacing.lg }}>
+          <Card color={BRAND.colors.primary} style={{ padding: 28 }}>
+            <div style={{ marginBottom: 18 }}>
               <label style={{ 
-                ...BRAND.typography.caption1,
-                fontWeight: "600",
-                color: BRAND.colors.textSecondary, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                color: BRAND.colors.textMuted, 
                 display: "block", 
-                marginBottom: BRAND.spacing.xs,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: 1,
               }}>
                 Last Period Start
               </label>
@@ -1555,24 +1380,26 @@ function AddProfile({ onAdd, onBack }) {
                 onChange={e => setForm({ ...form, lastPeriodStart: e.target.value })}
                 style={{
                   width: "100%",
-                  background: BRAND.colors.background,
-                  border: `1px solid ${BRAND.colors.divider}`,
-                  borderRadius: BRAND.radius.md,
-                  padding: BRAND.spacing.md,
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${BRAND.colors.primary}40`,
+                  borderRadius: 16,
+                  padding: "14px 18px",
                   color: BRAND.colors.text,
-                  ...BRAND.typography.body,
+                  fontSize: 15,
                   outline: "none",
                 }}
               />
             </div>
 
-            <div>
+            <div style={{ marginBottom: 18 }}>
               <label style={{ 
-                ...BRAND.typography.caption1,
-                fontWeight: "600",
-                color: BRAND.colors.textSecondary, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                color: BRAND.colors.textMuted, 
                 display: "block", 
-                marginBottom: BRAND.spacing.xs,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: 1,
               }}>
                 Cycle Length (days)
               </label>
@@ -1584,12 +1411,12 @@ function AddProfile({ onAdd, onBack }) {
                 max={35}
                 style={{
                   width: "100%",
-                  background: BRAND.colors.background,
-                  border: `1px solid ${BRAND.colors.divider}`,
-                  borderRadius: BRAND.radius.md,
-                  padding: BRAND.spacing.md,
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${BRAND.colors.primary}40`,
+                  borderRadius: 16,
+                  padding: "14px 18px",
                   color: BRAND.colors.text,
-                  ...BRAND.typography.body,
+                  fontSize: 15,
                   outline: "none",
                 }}
               />
@@ -1597,9 +1424,9 @@ function AddProfile({ onAdd, onBack }) {
           </Card>
         )}
 
-        <div style={{ display: "flex", gap: BRAND.spacing.sm, marginTop: BRAND.spacing.lg }}>
+        <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
           {step > 1 && (
-            <Button variant="secondary" onClick={() => setStep(1)} fullWidth size="lg">
+            <Button variant="secondary" onClick={() => setStep(1)} fullWidth>
               Back
             </Button>
           )}
@@ -1614,7 +1441,6 @@ function AddProfile({ onAdd, onBack }) {
             }}
             disabled={step === 1 ? !form.name.trim() : false}
             fullWidth
-            size="lg"
           >
             {step === 1 ? "Continue" : "Add Profile"}
           </Button>
@@ -1624,11 +1450,11 @@ function AddProfile({ onAdd, onBack }) {
   );
 }
 
-// ─── Dashboard (Mobile First) ─────────────────────────────────────────────
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   const [showHidden, setShowHidden] = useState(false);
-  const safeArea = useSafeArea();
+  const [hoveredId, setHoveredId] = useState(null);
   const visible = profiles.filter(p => showHidden ? p.hidden : !p.hidden);
   const hiddenCount = profiles.filter(p => p.hidden).length;
 
@@ -1636,19 +1462,19 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
     { 
       label: "Profiles", 
       value: profiles.filter(p => !p.hidden).length,
-      icon: <Icons.Heart size={20} />,
+      icon: <Icons.Heart />,
       color: BRAND.colors.primary,
     },
     { 
       label: "Safe Now", 
       value: profiles.filter(p => !p.hidden && CYCLE_TIPS[getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength))].safe).length,
-      icon: <Icons.Sparkles size={20} />,
+      icon: <Icons.Sparkles />,
       color: BRAND.colors.accent,
     },
     { 
       label: "Ovulating", 
       value: profiles.filter(p => !p.hidden && getPhaseFromDay(getDayOfCycle(p.lastPeriodStart, p.cycleLength)) === "ovulation").length,
-      icon: <Icons.Sprout size={20} />,
+      icon: <Icons.Sprout />,
       color: "#fbbf24",
     },
   ];
@@ -1660,17 +1486,17 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
       color: BRAND.colors.text, 
       fontFamily: BRAND.fonts.body,
       position: "relative",
-      paddingBottom: safeArea.bottom,
     }}>
       <style>{animations}</style>
       <BgDecor phase="luteal" />
       
       <div style={{ 
         position: "relative", 
-        zIndex: 2,
-        padding: `${safeArea.top + BRAND.spacing.md}px ${BRAND.spacing.md}px ${BRAND.spacing.xl}px`,
-        maxWidth: 480,
-        margin: "0 auto",
+        zIndex: 2, 
+        maxWidth: 480, 
+        margin: "0 auto", 
+        padding: "0 16px 100px",
+        animation: "fadeIn 0.5s ease",
       }}>
 
         {/* Header */}
@@ -1678,69 +1504,60 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center", 
-          marginBottom: BRAND.spacing.xl,
+          padding: "28px 0 24px",
         }}>
           <div>
-            <p style={{ 
-              ...BRAND.typography.caption1,
-              color: BRAND.colors.textTertiary,
-              margin: 0,
-            }}>
+            <p style={{ margin: "0 0 4px", fontSize: 14, color: BRAND.colors.textMuted }}>
               Welcome back,
             </p>
             <h1 style={{ 
-              ...BRAND.typography.title2,
-              margin: 0,
+              margin: 0, 
+              fontSize: 32, 
+              fontFamily: BRAND.fonts.heading, 
+              fontWeight: 700,
+              color: BRAND.colors.text,
             }}>
               {user?.username}
             </h1>
           </div>
           
-          <div style={{ display: "flex", gap: BRAND.spacing.xs }}>
-            <Button variant="primary" onClick={onAdd} icon={<Icons.Plus size={18} />}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button variant="primary" onClick={onAdd} icon="+">
               Add
             </Button>
-            <Button variant="ghost" onClick={onLogout}>
-              Log out
+            <Button variant="secondary" onClick={onLogout}>
+              Sign out
             </Button>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         {profiles.filter(p => !p.hidden).length > 0 && (
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: "repeat(3, 1fr)", 
-            gap: BRAND.spacing.sm, 
-            marginBottom: BRAND.spacing.lg 
+            gap: 12, 
+            marginBottom: 24 
           }}>
             {stats.map(stat => (
-              <Card key={stat.label} color={stat.color} style={{ padding: BRAND.spacing.md }}>
+              <Card key={stat.label} color={stat.color} style={{ padding: 16, textAlign: "center" }}>
                 <div style={{ 
                   width: 36, 
                   height: 36, 
-                  borderRadius: BRAND.radius.sm, 
+                  borderRadius: 12, 
                   background: `${stat.color}20`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  margin: `0 auto ${BRAND.spacing.sm}px`,
+                  margin: "0 auto 12px",
                   color: stat.color,
                 }}>
                   {stat.icon}
                 </div>
-                <div style={{ 
-                  ...BRAND.typography.title3,
-                  color: stat.color, 
-                  textAlign: "center",
-                }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: stat.color, fontFamily: BRAND.fonts.heading }}>
                   {stat.value}
                 </div>
-                <div style={{ 
-                  ...BRAND.typography.caption2,
-                  color: BRAND.colors.textTertiary, 
-                  textAlign: "center",
-                }}>
+                <div style={{ fontSize: 12, color: BRAND.colors.textMuted, marginTop: 4 }}>
                   {stat.label}
                 </div>
               </Card>
@@ -1748,211 +1565,200 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
           </div>
         )}
 
-        {/* Hidden Profiles Toggle */}
+        {/* Hidden toggle */}
         {hiddenCount > 0 && (
           <Button
             variant="secondary"
             onClick={() => setShowHidden(h => !h)}
             fullWidth
-            style={{ marginBottom: BRAND.spacing.md }}
+            style={{ marginBottom: 16 }}
           >
-            {showHidden ? `Hide hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
+            {showHidden ? `👁 Showing ${hiddenCount} hidden` : `🙈 ${hiddenCount} hidden profiles`}
           </Button>
         )}
 
-        {/* Profile List */}
+        {/* Profile list */}
         {visible.length === 0 ? (
-          <Card color={BRAND.colors.primary} elevated style={{ padding: BRAND.spacing.xl, textAlign: "center" }}>
-            <div style={{ fontSize: 64, marginBottom: BRAND.spacing.md }}>🌙</div>
-            <h2 style={{ 
-              ...BRAND.typography.title3,
-              margin: `0 0 ${BRAND.spacing.xs}px`,
-            }}>
+          <Card color={BRAND.colors.primary} style={{ textAlign: "center", padding: 48 }}>
+            <div style={{ fontSize: 64, marginBottom: 20 }}>🌙</div>
+            <h2 style={{ fontFamily: BRAND.fonts.heading, margin: "0 0 12px", fontSize: 24 }}>
               {showHidden ? "No hidden profiles" : "No profiles yet"}
             </h2>
-            <p style={{ 
-              ...BRAND.typography.footnote,
-              color: BRAND.colors.textSecondary, 
-              marginBottom: BRAND.spacing.lg,
-            }}>
+            <p style={{ color: BRAND.colors.textMuted, marginBottom: 24 }}>
               {showHidden ? "All profiles are visible" : "Add your first profile to start tracking"}
             </p>
             {!showHidden && (
-              <Button variant="primary" onClick={onAdd} fullWidth size="lg">
+              <Button variant="primary" onClick={onAdd} fullWidth>
                 Add Profile
               </Button>
             )}
           </Card>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: BRAND.spacing.md }}>
-            {visible.map((profile) => {
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {visible.map((profile, idx) => {
               const day = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
               const phase = getPhaseFromDay(day);
               const PD = PHASES[phase];
               const tips = CYCLE_TIPS[phase];
+              const isHovered = hoveredId === profile.id;
               
               return (
-                <Card
+                <div
                   key={profile.id}
-                  color={PD.color}
+                  onMouseEnter={() => setHoveredId(profile.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   onClick={() => onSelect(profile)}
-                  elevated
+                  style={{
+                    position: "relative",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    transform: isHovered ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)",
+                  }}
                 >
-                  {/* Header */}
-                  <div style={{ display: "flex", gap: BRAND.spacing.md, marginBottom: BRAND.spacing.md }}>
+                  <Card color={PD.color} style={{ padding: 0, overflow: "hidden" }}>
+                    {/* Gradient top bar */}
                     <div style={{
-                      width: 56, height: 56, borderRadius: BRAND.radius.md,
-                      background: `${PD.color}30`,
-                      border: `2px solid ${PD.color}`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 24,
-                    }}>
-                      {profile.avatar}
-                    </div>
+                      height: 6,
+                      background: `linear-gradient(90deg, ${PD.color}, ${BRAND.colors.secondary})`,
+                    }} />
                     
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ 
-                        ...BRAND.typography.subhead,
-                        fontWeight: "700",
-                        margin: 0,
-                      }}>
-                        {profile.name}
-                      </h3>
-                      <div style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: BRAND.spacing.xs,
-                        background: `${PD.color}20`,
-                        borderRadius: BRAND.radius.pill,
-                        padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                        border: `1px solid ${PD.color}40`,
-                        marginTop: BRAND.spacing.xs,
-                      }}>
-                        <span style={{ fontSize: 12 }}>{PD.emoji}</span>
-                        <span style={{ 
-                          ...BRAND.typography.caption2,
-                          color: PD.color, 
-                          fontWeight: "600" 
+                    <div style={{ padding: 20 }}>
+                      {/* Header */}
+                      <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
+                        <div style={{
+                          width: 56, height: 56, borderRadius: 18,
+                          background: `${PD.color}30`,
+                          border: `2px solid ${PD.color}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 26,
                         }}>
-                          {PD.label} · Day {day}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div style={{
-                      background: tips.safe ? BRAND.colors.accent : PD.color,
-                      borderRadius: BRAND.radius.pill,
-                      padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                      ...BRAND.typography.caption2,
-                      fontWeight: "700",
-                      color: "#111",
-                    }}>
-                      {tips.safe ? "✓ Safe" : "⚠️ Risk"}
-                    </div>
-                  </div>
-                  
-                  {/* Phase Progress */}
-                  <div style={{
-                    display: "flex",
-                    height: 4,
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    gap: 2,
-                    marginBottom: BRAND.spacing.md,
-                  }}>
-                    {Object.entries(PHASES).map(([k, v]) => {
-                      const width = ((v.days[1] - v.days[0] + 1) / profile.cycleLength) * 100;
-                      return (
-                        <div
-                          key={k}
-                          style={{
-                            width: `${width}%`,
-                            background: phase === k ? v.color : `${v.color}30`,
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Mini Stats */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: BRAND.spacing.sm }}>
-                    <div style={{
-                      background: "#f8717120",
-                      borderRadius: BRAND.radius.sm,
-                      padding: BRAND.spacing.sm,
-                      border: "1px solid #f8717140",
-                    }}>
-                      <div style={{ 
-                        ...BRAND.typography.subhead,
-                        fontWeight: "700", 
-                        color: "#f87171",
-                      }}>
-                        {daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength))}d
-                      </div>
-                      <div style={{ 
-                        ...BRAND.typography.caption2,
-                        color: BRAND.colors.textTertiary 
-                      }}>
-                        to period
-                      </div>
-                    </div>
-                    
-                    <div style={{
-                      background: "#34d39920",
-                      borderRadius: BRAND.radius.sm,
-                      padding: BRAND.spacing.sm,
-                      border: "1px solid #34d39940",
-                    }}>
-                      <div style={{ 
-                        ...BRAND.typography.subhead,
-                        fontWeight: "700", 
-                        color: "#34d399",
-                      }}>
-                        {daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength))}d
-                      </div>
-                      <div style={{ 
-                        ...BRAND.typography.caption2,
-                        color: BRAND.colors.textTertiary 
-                      }}>
-                        to ovulation
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Symptom Preview */}
-                  {(profile.symptoms || []).length > 0 && (
-                    <div style={{ 
-                      display: "flex", 
-                      gap: BRAND.spacing.xs, 
-                      flexWrap: "wrap", 
-                      marginTop: BRAND.spacing.sm,
-                    }}>
-                      {(profile.symptoms || []).slice(0, 3).map(s => (
-                        <span
-                          key={s}
-                          style={{
+                          {profile.avatar}
+                        </div>
+                        
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ 
+                            margin: "0 0 4px", 
+                            fontSize: 20, 
+                            fontFamily: BRAND.fonts.heading, 
+                            fontWeight: 700,
+                            color: BRAND.colors.text,
+                          }}>
+                            {profile.name}
+                          </h3>
+                          <div style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
                             background: `${PD.color}20`,
+                            borderRadius: 30,
+                            padding: "4px 12px",
                             border: `1px solid ${PD.color}40`,
-                            borderRadius: BRAND.radius.pill,
-                            padding: `${BRAND.spacing.xs}px ${BRAND.spacing.sm}px`,
-                            ...BRAND.typography.caption2,
-                            color: PD.color,
-                          }}
-                        >
-                          {s}
-                        </span>
-                      ))}
-                      {(profile.symptoms || []).length > 3 && (
-                        <span style={{ 
-                          ...BRAND.typography.caption2,
-                          color: BRAND.colors.textTertiary 
+                          }}>
+                            <span style={{ fontSize: 12 }}>{PD.emoji}</span>
+                            <span style={{ fontSize: 12, color: PD.color, fontWeight: 600 }}>
+                              {PD.label} · Day {day}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div style={{
+                          background: tips.safe ? BRAND.colors.accent : PD.color,
+                          borderRadius: 30,
+                          padding: "6px 14px",
+                          color: "#111",
+                          fontSize: 12,
+                          fontWeight: 700,
                         }}>
-                          +{(profile.symptoms || []).length - 3} more
-                        </span>
+                          {tips.safe ? "✓ Safe" : "⚠️ Risk"}
+                        </div>
+                      </div>
+                      
+                      {/* Progress bar */}
+                      <div style={{
+                        display: "flex",
+                        height: 6,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        gap: 2,
+                        marginBottom: 16,
+                      }}>
+                        {Object.entries(PHASES).map(([k, v]) => {
+                          const width = ((v.days[1] - v.days[0] + 1) / profile.cycleLength) * 100;
+                          return (
+                            <div
+                              key={k}
+                              style={{
+                                width: `${width}%`,
+                                background: phase === k ? v.color : `${v.color}30`,
+                                transition: "all 0.3s ease",
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Mini stats */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{
+                          background: "#f8717120",
+                          borderRadius: 12,
+                          padding: "10px",
+                          border: "1px solid #f8717140",
+                        }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: "#f87171", fontFamily: BRAND.fonts.heading }}>
+                            {daysUntil(getNextPeriod(profile.lastPeriodStart, profile.cycleLength))}d
+                          </div>
+                          <div style={{ fontSize: 11, color: BRAND.colors.textMuted }}>to period</div>
+                        </div>
+                        
+                        <div style={{
+                          background: "#34d39920",
+                          borderRadius: 12,
+                          padding: "10px",
+                          border: "1px solid #34d39940",
+                        }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: "#34d399", fontFamily: BRAND.fonts.heading }}>
+                            {daysUntil(getOvulation(profile.lastPeriodStart, profile.cycleLength))}d
+                          </div>
+                          <div style={{ fontSize: 11, color: BRAND.colors.textMuted }}>to ovulation</div>
+                        </div>
+                      </div>
+                      
+                      {/* Symptom preview */}
+                      {(profile.symptoms || []).length > 0 && (
+                        <div style={{ 
+                          display: "flex", 
+                          gap: 6, 
+                          flexWrap: "wrap", 
+                          marginTop: 12,
+                          opacity: isHovered ? 1 : 0.8,
+                          transition: "opacity 0.3s ease",
+                        }}>
+                          {(profile.symptoms || []).slice(0, 3).map(s => (
+                            <span
+                              key={s}
+                              style={{
+                                background: `${PD.color}20`,
+                                border: `1px solid ${PD.color}40`,
+                                borderRadius: 30,
+                                padding: "4px 10px",
+                                fontSize: 11,
+                                color: PD.color,
+                              }}
+                            >
+                              {s}
+                            </span>
+                          ))}
+                          {(profile.symptoms || []).length > 3 && (
+                            <span style={{ fontSize: 11, color: BRAND.colors.textMuted }}>
+                              +{(profile.symptoms || []).length - 3} more
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </Card>
+                  </Card>
+                </div>
               );
             })}
           </div>
@@ -1962,11 +1768,11 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
   );
 }
 
-// ─── Login (Mobile First) ──────────────────────────────────────────────────
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 function Login({ onLogin }) {
   const [form, setForm] = useState({ username: "", password: "" });
-  const safeArea = useSafeArea();
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div style={{ 
@@ -1977,98 +1783,95 @@ function Login({ onLogin }) {
       justifyContent: "center", 
       fontFamily: BRAND.fonts.body, 
       position: "relative", 
-      padding: `${safeArea.top}px ${BRAND.spacing.md}px ${safeArea.bottom}px`,
+      padding: 20,
     }}>
       <style>{animations}</style>
       <BgDecor phase="luteal" />
       
-      <Card color={BRAND.colors.primary} elevated style={{ 
+      <div style={{ 
+        position: "relative", 
+        zIndex: 2, 
         width: "100%", 
-        maxWidth: 400, 
-        padding: BRAND.spacing.xl,
-        textAlign: "center",
+        maxWidth: 400,
+        animation: "fadeIn 0.5s ease",
       }}>
-        <div style={{ 
-          fontSize: 72, 
-          marginBottom: BRAND.spacing.md,
-          animation: "slideDown 0.5s ease",
-        }}>
-          🌙
-        </div>
-        
-        <h1 style={{ 
-          ...BRAND.typography.title1,
-          margin: `0 0 ${BRAND.spacing.xs}px`,
-          background: `linear-gradient(135deg, ${BRAND.colors.primary}, ${BRAND.colors.secondary})`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}>
-          Luna
-        </h1>
-        
-        <p style={{ 
-          ...BRAND.typography.body,
-          color: BRAND.colors.textSecondary, 
-          marginBottom: BRAND.spacing.xl,
-        }}>
-          Understand her rhythm
-        </p>
+        <Card color={BRAND.colors.primary} style={{ textAlign: "center", padding: 40 }}>
+          <div style={{ 
+            fontSize: 72, 
+            marginBottom: 16,
+            animation: "float 6s infinite ease-in-out",
+          }}>
+            🌙
+          </div>
+          
+          <h1 style={{ 
+            margin: "0 0 8px", 
+            fontSize: 48, 
+            fontFamily: BRAND.fonts.heading, 
+            fontWeight: 700,
+            color: BRAND.colors.text,
+            background: `linear-gradient(135deg, ${BRAND.colors.primary}, ${BRAND.colors.secondary})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}>
+            Luna
+          </h1>
+          
+          <p style={{ color: BRAND.colors.textMuted, fontSize: 15, marginBottom: 32 }}>
+            Understand her rhythm
+          </p>
 
-        <input
-          value={form.username}
-          onChange={e => setForm({ ...form, username: e.target.value })}
-          placeholder="Username"
-          onKeyDown={e => e.key === "Enter" && form.username && onLogin(form.username)}
-          style={{
-            width: "100%",
-            background: BRAND.colors.background,
-            border: `1px solid ${BRAND.colors.divider}`,
-            borderRadius: BRAND.radius.md,
-            padding: BRAND.spacing.md,
-            color: BRAND.colors.text,
-            ...BRAND.typography.body,
-            outline: "none",
-            marginBottom: BRAND.spacing.sm,
-          }}
-        />
-        
-        <input
-          type="password"
-          value={form.password}
-          onChange={e => setForm({ ...form, password: e.target.value })}
-          placeholder="Password (optional)"
-          style={{
-            width: "100%",
-            background: BRAND.colors.background,
-            border: `1px solid ${BRAND.colors.divider}`,
-            borderRadius: BRAND.radius.md,
-            padding: BRAND.spacing.md,
-            color: BRAND.colors.text,
-            ...BRAND.typography.body,
-            outline: "none",
-            marginBottom: BRAND.spacing.lg,
-          }}
-        />
-        
-        <Button
-          variant="primary"
-          onClick={() => form.username && onLogin(form.username)}
-          disabled={!form.username}
-          fullWidth
-          size="lg"
-        >
-          Enter Luna
-        </Button>
-        
-        <p style={{ 
-          ...BRAND.typography.caption2,
-          color: BRAND.colors.textTertiary, 
-          marginTop: BRAND.spacing.lg, 
-          marginBottom: 0,
-        }}>
-          All data stored locally on your device
-        </p>
-      </Card>
+          <input
+            value={form.username}
+            onChange={e => setForm({ ...form, username: e.target.value })}
+            placeholder="Username"
+            onKeyDown={e => e.key === "Enter" && form.username && onLogin(form.username)}
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${BRAND.colors.primary}40`,
+              borderRadius: 16,
+              padding: "16px 20px",
+              color: BRAND.colors.text,
+              fontSize: 15,
+              outline: "none",
+              marginBottom: 12,
+            }}
+          />
+          
+          <input
+            type="password"
+            value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })}
+            placeholder="Password (optional)"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${BRAND.colors.primary}40`,
+              borderRadius: 16,
+              padding: "16px 20px",
+              color: BRAND.colors.text,
+              fontSize: 15,
+              outline: "none",
+              marginBottom: 24,
+            }}
+          />
+          
+          <Button
+            variant="primary"
+            onClick={() => form.username && onLogin(form.username)}
+            disabled={!form.username}
+            fullWidth
+            style={{ padding: "16px" }}
+          >
+            Enter Luna
+          </Button>
+          
+          <p style={{ color: BRAND.colors.textMuted, fontSize: 12, marginTop: 24, marginBottom: 0 }}>
+            All data stored locally on your device
+          </p>
+        </Card>
+      </div>
     </div>
   );
 }
