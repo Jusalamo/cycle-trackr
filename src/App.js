@@ -59,6 +59,12 @@ const GLOBAL_CSS = `
   /* Toggle */
   .tog-track { transition: background 0.18s ease; }
   .tog-thumb  { transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
+
+  /* Range slider — hide native thumb, we render our own */
+  input[type=range] { -webkit-appearance:none; appearance:none; background:transparent; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; opacity:0; }
+  input[type=range]::-moz-range-thumb { width:22px; height:22px; opacity:0; border:none; }
+  input[type=range]:focus { outline:none; }
 `;
 
 function GlobalStyles() {
@@ -200,7 +206,7 @@ function DDBtn({ children, onClick, disabled, variant="primary", color, style={}
 
 // Label — DD small caps style
 function Lbl({ children, style={} }) {
-  return <div style={{ fontSize:10, fontWeight:800, letterSpacing:1.8, color:T.textMute, textTransform:"uppercase", marginBottom:8, ...style }}>{children}</div>;
+  return <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.6, color:T.textMute, textTransform:"uppercase", marginBottom:8, ...style }}>{children}</div>;
 }
 
 // Divider
@@ -360,8 +366,8 @@ function AIInsight({ profile }) {
         </DDBtn>
       </div>
       {text
-        ?<p style={{fontSize:13,color:err?"#ff7070":T.textSoft,lineHeight:1.75,margin:0}}>{text}</p>
-        :<p style={{fontSize:12,color:T.textMute,margin:0,fontStyle:"italic",lineHeight:1.6}}>Generate a personalized AI insight for this cycle phase.</p>
+        ?<p style={{fontSize:14,color:err?"#ff7070":T.textSoft,lineHeight:1.75,margin:0}}>{text}</p>
+        :<p style={{fontSize:13,color:T.textMute,margin:0,fontStyle:"italic",lineHeight:1.6}}>Generate a personalized AI insight for this cycle phase.</p>
       }
     </div>
   );
@@ -420,8 +426,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               <div style={{flex:1,minWidth:0}}>
                 <h2 style={{fontFamily:T.fontSerif,fontSize:24,fontWeight:800,margin:"0 0 6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</h2>
                 <div style={{display:"inline-flex",alignItems:"center",gap:6,background:PD.color+"1a",borderRadius:T.r.pill,padding:"4px 12px",border:`1px solid ${PD.color}30`}}>
-                  <span style={{fontSize:11}}>{PD.emoji}</span>
-                  <span style={{fontSize:12,color:PD.color,fontWeight:700}}>{PD.label} · Day {day} of {profile.cycleLength}</span>
+                  <span style={{fontSize:12}}>{PD.emoji}</span>
+                  <span style={{fontSize:13,color:PD.color,fontWeight:700}}>{PD.label} · Day {day} of {profile.cycleLength}</span>
                 </div>
               </div>
               <CycleRing day={day} cycleLength={profile.cycleLength} profile={profile} size={76}/>
@@ -430,8 +436,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
             <div style={{background:tips.safe?"rgba(76,175,122,0.1)":"rgba(232,67,147,0.1)",border:`1px solid ${tips.safe?T.green+"44":PD.color+"44"}`,borderRadius:T.r.md,padding:"12px 15px",display:"flex",gap:11,alignItems:"flex-start"}}>
               <span style={{fontSize:18,flexShrink:0,lineHeight:1.4}}>{tips.safe?"✅":"⚠️"}</span>
               <div>
-                <div style={{fontSize:10,fontWeight:800,letterSpacing:1.8,color:tips.safe?T.green:PD.color,marginBottom:4}}>{tips.risk}</div>
-                <div style={{fontSize:12,color:T.textSoft,lineHeight:1.65}}>{tips.note}</div>
+                <div style={{fontSize:11,fontWeight:800,letterSpacing:1.8,color:tips.safe?T.green:PD.color,marginBottom:4}}>{tips.risk}</div>
+                <div style={{fontSize:14,color:T.textSoft,lineHeight:1.65}}>{tips.note}</div>
               </div>
             </div>
           </div>
@@ -444,7 +450,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               flex:1,border:"none",borderRadius:T.r.pill,padding:"9px 4px",
               background:tab===t.id?PD.color:"transparent",
               color:tab===t.id?"#111":T.textMute,
-              fontSize:12,fontWeight:tab===t.id?800:600,cursor:"pointer",
+              fontSize:13,fontWeight:tab===t.id?800:600,cursor:"pointer",
               fontFamily:T.fontBody,
               boxShadow:tab===t.id?`0 2px 10px ${PD.color}45`:"none",
             }}>{t.label}</button>
@@ -469,7 +475,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 <div key={s.label} className={`fade-in-${i+1}`} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:T.r.lg,padding:"15px 17px"}}>
                   <Lbl style={{color:s.color+"88"}}>{s.label}</Lbl>
                   <div style={{fontSize:20,fontWeight:900,color:s.color,fontFamily:T.fontSerif,marginBottom:3,lineHeight:1}}>{s.val}</div>
-                  <div style={{fontSize:11,color:T.textMute}}>{s.sub}</div>
+                  <div style={{fontSize:12,color:T.textMute}}>{s.sub}</div>
                 </div>
               ))}
             </div>
@@ -502,7 +508,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                         background:on?PD.color+"22":"rgba(255,255,255,0.05)",
                         border:`1px solid ${on?PD.color+"55":T.border}`,
                         borderRadius:T.r.pill,padding:"6px 13px",
-                        color:on?PD.color:T.textMute,fontSize:12,cursor:"pointer",
+                        color:on?PD.color:T.textMute,fontSize:13,cursor:"pointer",
                       }}>{s}</button>
                     );
                   })}
@@ -510,9 +516,9 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               ):(
                 <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
                   {(profile.symptoms||[]).length===0
-                    ?<span style={{fontSize:12,color:T.textMute,fontStyle:"italic"}}>None logged — tap Edit to add.</span>
+                    ?<span style={{fontSize:13,color:T.textMute,fontStyle:"italic"}}>None logged — tap Edit to add.</span>
                     :(profile.symptoms||[]).map(s=>(
-                      <span key={s} style={{background:PD.color+"1a",border:`1px solid ${PD.color}33`,borderRadius:T.r.pill,padding:"5px 13px",fontSize:12,color:PD.color}}>{s}</span>
+                      <span key={s} style={{background:PD.color+"1a",border:`1px solid ${PD.color}33`,borderRadius:T.r.pill,padding:"5px 13px",fontSize:13,color:PD.color}}>{s}</span>
                     ))
                   }
                 </div>
@@ -577,7 +583,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 <DDBtn color={T.lavender} onClick={()=>setShowLogModal(true)} style={{padding:"7px 16px",fontSize:12}}>+ Add</DDBtn>
               </div>
               {(profile.intimacyLog||[]).length===0
-                ?<p style={{fontSize:12,color:T.textMute,fontStyle:"italic",margin:0}}>No sessions logged yet.</p>
+                ?<p style={{fontSize:13,color:T.textMute,fontStyle:"italic",margin:0}}>No sessions logged yet.</p>
                 :[...(profile.intimacyLog||[])].reverse().map(d=>{
                   const diff=Math.floor((new Date(d)-new Date(profile.lastPeriodStart))/86400000);
                   const cd=((diff%profile.cycleLength)+profile.cycleLength)%profile.cycleLength+1;
@@ -598,151 +604,177 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         )}
 
         {/* ══════════════ LOG ══════════════ */}
-        {tab==="log"&&(
-          <div className="fade-in">
+        {tab==="log"&&(()=>{
+          // Derive live values with safe fallbacks
+          const cl   = profile.cycleLength    || 28;
+          const pd   = profile.periodLength   || 5;
+          const ovd  = profile.ovulationDay   || 14;
+          const ovl  = profile.ovulationLength|| 3;
+          const b    = getPhaseBounds(profile);
 
-            {/* ── BASIC CYCLE DATA ── */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:22,marginBottom:14,boxShadow:T.cardShadow}}>
-              <Lbl>Basic Cycle Data</Lbl>
-              <Hr/>
-              <div style={{marginBottom:16}}>
-                <Lbl>Last Period Start Date</Lbl>
-                <input type="date" value={profile.lastPeriodStart||""} className="dd-input"
-                  onChange={e=>onUpdate({...profile,lastPeriodStart:e.target.value})}
-                  style={inputStyle}/>
+          const segments = [
+            {key:"menstruation", label:"Period",     days:b.menstruation, color:"#e84393"},
+            {key:"follicular",   label:"Follicular", days:b.follicular,   color:"#f5a623"},
+            {key:"ovulation",    label:"Ovulation",  days:b.ovulation,    color:"#4caf7a"},
+            {key:"luteal",       label:"Luteal",     days:b.luteal,       color:"#9b59b6"},
+          ];
+
+          // Shared slider row component (inline, avoids extra component def)
+          const SliderRow = ({label, emoji, color, value, min, max, onChange, note}) => (
+            <div style={{marginBottom:22}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+                <span style={{fontSize:14,fontWeight:800,color}}>{emoji} {label}</span>
+                <span style={{fontSize:22,fontWeight:900,color,fontFamily:T.fontSerif,lineHeight:1}}>{value}<span style={{fontSize:13,fontWeight:600,color:T.textMute}}> days</span></span>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div>
-                  <Lbl>Cycle Length (Days)</Lbl>
-                  <input type="number" value={profile.cycleLength||28} className="dd-input"
-                    min={18} max={60}
-                    onChange={e=>onUpdate({...profile,cycleLength:Math.max(18,Math.min(60,parseInt(e.target.value)||28))})}
+              <div style={{position:"relative",height:36,display:"flex",alignItems:"center"}}>
+                {/* Track bg */}
+                <div style={{position:"absolute",left:0,right:0,height:6,borderRadius:3,background:"rgba(255,255,255,0.08)"}}/>
+                {/* Filled track */}
+                <div style={{position:"absolute",left:0,height:6,borderRadius:3,background:color,width:`${((value-min)/(max-min))*100}%`,transition:"width 0.15s ease",boxShadow:`0 0 8px ${color}66`}}/>
+                <input type="range" min={min} max={max} value={value}
+                  onChange={e=>onChange(parseInt(e.target.value))}
+                  style={{
+                    position:"relative",width:"100%",height:36,opacity:0,cursor:"pointer",
+                    zIndex:2,margin:0,padding:0,WebkitAppearance:"none",
+                  }}
+                />
+                {/* Thumb */}
+                <div style={{
+                  position:"absolute",width:22,height:22,borderRadius:"50%",
+                  background:"white",border:`3px solid ${color}`,
+                  boxShadow:`0 2px 8px rgba(0,0,0,0.5),0 0 0 4px ${color}22`,
+                  left:`calc(${((value-min)/(max-min))*100}% - 11px)`,
+                  transition:"left 0.15s ease",pointerEvents:"none",
+                }}/>
+              </div>
+              {note&&<div style={{fontSize:12,color:T.textMute,marginTop:5,lineHeight:1.5}}>{note}</div>}
+            </div>
+          );
+
+          return (
+            <div className="fade-in">
+
+              {/* ── SINGLE UNIFIED CARD: Cycle Settings + Phase Boundaries + Notes ── */}
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
+
+                {/* Section: Dates */}
+                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:14}}>🗓 Cycle Settings</div>
+                <div style={{marginBottom:18}}>
+                  <Lbl>Last Period Start Date</Lbl>
+                  <input type="date" value={profile.lastPeriodStart||""} className="dd-input"
+                    onChange={e=>onUpdate({...profile,lastPeriodStart:e.target.value})}
                     style={inputStyle}/>
                 </div>
-                <div>
-                  <Lbl>Period Duration (Days)</Lbl>
-                  <input type="number" value={profile.periodLength||5} className="dd-input"
-                    min={1} max={10}
-                    onChange={e=>onUpdate({...profile,periodLength:Math.max(1,Math.min(10,parseInt(e.target.value)||5))})}
-                    style={inputStyle}/>
+
+                {/* Cycle Length slider */}
+                <SliderRow label="Total Cycle Length" emoji="🔄" color={T.lavender}
+                  value={cl} min={18} max={60}
+                  note={`Full cycle from Day 1 to Day ${cl}`}
+                  onChange={v=>{
+                    const newOvd = Math.min(ovd, v-2);
+                    const newOvl = Math.min(ovl, v-newOvd);
+                    onUpdate({...profile, cycleLength:v, ovulationDay:newOvd, ovulationLength:newOvl});
+                  }}
+                />
+
+                <Hr/>
+
+                {/* Section: Phase Boundaries */}
+                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:6}}>⚙️ Phase Boundaries</div>
+                <div style={{fontSize:13,color:T.textMute,lineHeight:1.6,marginBottom:18}}>
+                  Drag each slider to control how long each phase lasts. Luteal fills the remaining days automatically.
                 </div>
-              </div>
-            </div>
 
-            {/* ── PHASE BOUNDARIES ── */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:22,marginBottom:14,boxShadow:T.cardShadow}}>
-              <div style={{marginBottom:14}}>
-                <Lbl style={{marginBottom:4}}>Phase Boundaries</Lbl>
-                <p style={{fontSize:12,color:T.textMute,lineHeight:1.6,margin:0}}>
-                  Set exactly when ovulation starts and how many days it lasts. All other phases adjust automatically.
-                </p>
-              </div>
-              <Hr/>
+                {/* Period (Menstruation) length */}
+                <SliderRow label="Period Duration" emoji="🔴" color="#e84393"
+                  value={pd} min={1} max={Math.min(10, ovd-1)}
+                  note={`Menstruation: Day 1 – Day ${pd}`}
+                  onChange={v=>onUpdate({...profile, periodLength:v})}
+                />
 
-              {/* Ovulation Day stepper */}
-              <div style={{marginBottom:18}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div>
-                    <Lbl style={{marginBottom:2,color:PHASES.ovulation.color}}>⚡ Ovulation Starts — Day</Lbl>
-                    <div style={{fontSize:11,color:T.textMute}}>Which cycle day does ovulation begin?</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:0,background:T.surface2,borderRadius:T.r.md,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-                    <button className="dd-btn" onClick={()=>onUpdate({...profile,ovulationDay:Math.max((profile.periodLength||5)+1,((profile.ovulationDay||14))-1)})}
-                      style={{width:38,height:38,background:"transparent",border:"none",color:T.textSoft,fontSize:18,cursor:"pointer",borderRight:`1px solid ${T.border}`}}>−</button>
-                    <div style={{width:44,textAlign:"center",fontSize:16,fontWeight:900,color:PHASES.ovulation.color,fontFamily:T.fontSerif}}>{profile.ovulationDay||14}</div>
-                    <button className="dd-btn" onClick={()=>onUpdate({...profile,ovulationDay:Math.min((profile.cycleLength||28)-1,((profile.ovulationDay||14))+1)})}
-                      style={{width:38,height:38,background:"transparent",border:"none",color:T.textSoft,fontSize:18,cursor:"pointer",borderLeft:`1px solid ${T.border}`}}>+</button>
-                  </div>
+                {/* Follicular ends / Ovulation starts */}
+                <SliderRow label="Ovulation Starts" emoji="🌱" color="#f5a623"
+                  value={ovd} min={pd+1} max={cl-2}
+                  note={`Follicular phase: Day ${pd+1} – Day ${ovd-1} (${Math.max(0,ovd-1-pd)} days)`}
+                  onChange={v=>{
+                    const newOvl = Math.min(ovl, cl - v);
+                    onUpdate({...profile, ovulationDay:v, ovulationLength:newOvl});
+                  }}
+                />
+
+                {/* Ovulation window length */}
+                <SliderRow label="Ovulation Window" emoji="⚡" color="#4caf7a"
+                  value={ovl} min={1} max={Math.min(7, cl-ovd)}
+                  note={`Ovulation: Day ${ovd} – Day ${ovd+ovl-1} · Luteal: Day ${ovd+ovl} – Day ${cl} (${Math.max(0,cl-(ovd+ovl)+1)} days)`}
+                  onChange={v=>onUpdate({...profile, ovulationLength:v})}
+                />
+
+                <Hr/>
+
+                {/* Live preview bar */}
+                <div style={{fontSize:14,fontWeight:800,color:T.text,marginBottom:12}}>📊 Live Preview</div>
+                {/* Segmented bar */}
+                <div style={{display:"flex",borderRadius:T.r.md,overflow:"hidden",height:32,marginBottom:12,gap:2}}>
+                  {segments.map(seg=>{
+                    const len = seg.days[1]-seg.days[0]+1;
+                    const w   = (len/cl)*100;
+                    const isCur = phase===seg.key;
+                    return (
+                      <div key={seg.key} style={{
+                        width:`${w}%`,background:seg.color+(isCur?"":"55"),
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        transition:"all 0.25s ease",
+                        boxShadow:isCur?`0 0 12px ${seg.color}88`:"none",
+                      }}>
+                        {len>=2&&<span style={{fontSize:10,fontWeight:800,color:isCur?"#111":"rgba(255,255,255,0.8)"}}>{len}d</span>}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-
-              {/* Ovulation Length stepper */}
-              <div style={{marginBottom:18}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div>
-                    <Lbl style={{marginBottom:2,color:PHASES.ovulation.color}}>⚡ Ovulation Duration (Days)</Lbl>
-                    <div style={{fontSize:11,color:T.textMute}}>How many days does the ovulation window last?</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:0,background:T.surface2,borderRadius:T.r.md,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-                    <button className="dd-btn" onClick={()=>onUpdate({...profile,ovulationLength:Math.max(1,((profile.ovulationLength||3))-1)})}
-                      style={{width:38,height:38,background:"transparent",border:"none",color:T.textSoft,fontSize:18,cursor:"pointer",borderRight:`1px solid ${T.border}`}}>−</button>
-                    <div style={{width:44,textAlign:"center",fontSize:16,fontWeight:900,color:PHASES.ovulation.color,fontFamily:T.fontSerif}}>{profile.ovulationLength||3}</div>
-                    <button className="dd-btn" onClick={()=>onUpdate({...profile,ovulationLength:Math.min(7,((profile.ovulationLength||3))+1)})}
-                      style={{width:38,height:38,background:"transparent",border:"none",color:T.textSoft,fontSize:18,cursor:"pointer",borderLeft:`1px solid ${T.border}`}}>+</button>
-                  </div>
+                {/* Phase rows */}
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {segments.map(seg=>{
+                    const len = seg.days[1]-seg.days[0]+1;
+                    const isCur = phase===seg.key;
+                    return (
+                      <div key={seg.key} style={{
+                        display:"flex",justifyContent:"space-between",alignItems:"center",
+                        padding:"10px 14px",borderRadius:T.r.md,
+                        background:isCur?seg.color+"18":T.surface2,
+                        border:`1px solid ${isCur?seg.color+"44":T.border}`,
+                        transition:"all 0.2s",
+                      }}>
+                        <div style={{display:"flex",alignItems:"center",gap:9}}>
+                          <div style={{width:10,height:10,borderRadius:3,background:seg.color,flexShrink:0}}/>
+                          <span style={{fontSize:14,fontWeight:700,color:isCur?seg.color:T.textSoft}}>
+                            {PHASES[seg.key].emoji} {seg.label}
+                          </span>
+                          {isCur&&<span style={{fontSize:11,fontWeight:800,color:seg.color,background:seg.color+"20",borderRadius:T.r.pill,padding:"2px 9px"}}>NOW</span>}
+                        </div>
+                        <span style={{fontSize:13,color:T.textMute,fontWeight:700}}>Day {seg.days[0]}–{seg.days[1]} · {len}d</span>
+                      </div>
+                    );
+                  })}
                 </div>
+
+                <Hr/>
+
+                {/* Notes — same card, no reason for it to live separately */}
+                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:12}}>📝 Notes</div>
+                <textarea value={profile.notes||""} onChange={e=>onUpdate({...profile,notes:e.target.value})}
+                  placeholder="Mood patterns, observations, anything you notice…" className="dd-input"
+                  style={{...inputStyle,minHeight:90,resize:"vertical",fontSize:14}}/>
               </div>
 
-              <Hr/>
-
-              {/* Live phase preview bar */}
-              {(()=>{
-                const b=getPhaseBounds(profile);
-                const cl=profile.cycleLength||28;
-                const segments=[
-                  {key:"menstruation",label:"Period",   days:b.menstruation, color:"#e84393"},
-                  {key:"follicular",  label:"Follicular",days:b.follicular,   color:"#f5a623"},
-                  {key:"ovulation",   label:"Ovulation",days:b.ovulation,     color:"#4caf7a"},
-                  {key:"luteal",      label:"Luteal",   days:b.luteal,        color:"#9b59b6"},
-                ];
-                return (
-                  <div>
-                    <Lbl style={{marginBottom:10}}>Live Preview — {cl}-Day Cycle</Lbl>
-                    {/* Segmented bar */}
-                    <div style={{display:"flex",borderRadius:T.r.md,overflow:"hidden",height:28,marginBottom:12,gap:2}}>
-                      {segments.map(seg=>{
-                        const len=seg.days[1]-seg.days[0]+1;
-                        const w=(len/cl)*100;
-                        const isCur=phase===seg.key;
-                        return (
-                          <div key={seg.key} style={{
-                            width:`${w}%`,background:seg.color+(isCur?"":"55"),
-                            display:"flex",alignItems:"center",justifyContent:"center",
-                            position:"relative",transition:"all 0.3s ease",
-                            boxShadow:isCur?`0 0 12px ${seg.color}88`:"none",
-                          }}>
-                            {len>=3&&<span style={{fontSize:9,fontWeight:800,color:isCur?"#111":"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:0.5}}>{len}d</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Phase labels */}
-                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                      {segments.map(seg=>{
-                        const len=seg.days[1]-seg.days[0]+1;
-                        const isCur=phase===seg.key;
-                        return (
-                          <div key={seg.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderRadius:T.r.md,background:isCur?seg.color+"18":T.surface2,border:`1px solid ${isCur?seg.color+"44":T.border}`,transition:"all 0.2s"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <div style={{width:10,height:10,borderRadius:3,background:seg.color,flexShrink:0}}/>
-                              <span style={{fontSize:13,fontWeight:700,color:isCur?seg.color:T.textSoft}}>{PHASES[seg.key].emoji} {seg.label}</span>
-                              {isCur&&<span style={{fontSize:10,fontWeight:800,color:seg.color,background:seg.color+"20",borderRadius:T.r.pill,padding:"1px 8px"}}>NOW</span>}
-                            </div>
-                            <span style={{fontSize:12,color:T.textMute,fontWeight:600}}>Day {seg.days[0]}–{seg.days[1]} · {len}d</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
+              {/* Log intimacy CTA */}
+              <button className="dd-btn" onClick={()=>setShowLogModal(true)} style={{
+                width:"100%",padding:"16px",background:"#111",color:T.text,
+                border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,
+                cursor:"pointer",letterSpacing:"0.02em",boxShadow:"0 4px 18px rgba(0,0,0,0.55)",
+              }}>💕 Log Intimacy Session</button>
             </div>
-
-            {/* ── PERSONAL NOTES ── */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:22,marginBottom:14,boxShadow:T.cardShadow}}>
-              <Lbl>Personal Notes</Lbl>
-              <textarea value={profile.notes||""} onChange={e=>onUpdate({...profile,notes:e.target.value})} placeholder="Mood patterns, observations, anything you want to track…" className="dd-input"
-                style={{...inputStyle,minHeight:100,resize:"vertical"}}/>
-            </div>
-
-            {/* Log intimacy CTA */}
-            <button className="dd-btn" onClick={()=>setShowLogModal(true)} style={{
-              width:"100%",padding:"16px",background:"#111",color:T.text,
-              border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,
-              cursor:"pointer",letterSpacing:"0.02em",boxShadow:"0 4px 18px rgba(0,0,0,0.55)",
-            }}>💕 Log Intimacy Session</button>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════ INSIGHTS ══════════════ */}
         {tab==="insights"&&(
@@ -767,10 +799,10 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                     </div>
                     {isCur&&<div style={{background:val.color,borderRadius:T.r.pill,padding:"4px 14px",fontSize:11,fontWeight:800,color:"#111"}}>NOW</div>}
                   </div>
-                  <p style={{fontSize:13,color:T.textSoft,lineHeight:1.7,margin:"0 0 14px"}}>{t.note}</p>
+                  <p style={{fontSize:14,color:T.textSoft,lineHeight:1.7,margin:"0 0 14px"}}>{t.note}</p>
                   <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                     {[`⚡ ${t.energy}`,`🧠 ${t.mood}`,`💫 ${t.libido}`,t.safe?"✅ Safe":"⚠️ Risky"].map(tag=>(
-                      <span key={tag} style={{background:val.color+"18",border:`1px solid ${val.color}28`,borderRadius:T.r.pill,padding:"4px 12px",fontSize:11,color:val.color}}>{tag}</span>
+                      <span key={tag} style={{background:val.color+"18",border:`1px solid ${val.color}28`,borderRadius:T.r.pill,padding:"5px 13px",fontSize:12,color:val.color}}>{tag}</span>
                     ))}
                   </div>
                 </div>
