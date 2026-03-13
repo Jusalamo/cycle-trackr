@@ -144,15 +144,16 @@ function getDayOfCycle(lps, cl=28) { const d=Math.floor((new Date()-new Date(lps
 // Compute per-profile phase boundaries from stored settings
 function getPhaseBounds(profile) {
   const cl  = profile.cycleLength     || 28;
-  const pd  = Math.max(1, Math.min(profile.periodLength    || 5,  cl - 3));
-  const ovd = Math.max(pd+1, Math.min(profile.ovulationDay || 14, cl - 1));
-  const ovl = Math.max(1, Math.min(profile.ovulationLength || 3,  cl - ovd + 1));
-  const ovEnd = Math.min(ovd + ovl - 1, cl);
+  const pd  = Math.max(1, Math.min(profile.periodLength    || 5,  cl - 4));
+  // ovulationDay must leave room for at least 1 follicular day (pd+2) and 1 luteal day
+  const ovd = Math.max(pd+2, Math.min(profile.ovulationDay || 14, cl - 2));
+  const ovl = Math.max(1, Math.min(profile.ovulationLength || 3,  cl - ovd));
+  const ovEnd = Math.min(ovd + ovl - 1, cl - 1);
   return {
-    menstruation: [1,       pd      ],
-    follicular:   [pd+1,    ovd - 1 ],
-    ovulation:    [ovd,     ovEnd   ],
-    luteal:       [ovEnd+1, cl      ],
+    menstruation: [1,       pd          ],
+    follicular:   [pd+1,    ovd - 1     ],
+    ovulation:    [ovd,     ovEnd       ],
+    luteal:       [ovEnd+1, cl          ],
   };
 }
 
@@ -176,6 +177,49 @@ function getOvulation(lps, profile) {
 function daysUntil(d) { return Math.ceil((new Date(d)-new Date())/86400000); }
 function fmtDate(d)   { return new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
 function todayStr()   { return new Date().toISOString().split("T")[0]; }
+
+// ─── PARTNER CODE ─────────────────────────────────────────────────────────────
+// Encodes all profile data into a compact shareable string.
+// Format: base64(JSON) prefixed with "CYC-" so it's recognisable.
+
+function encodePartnerCode(profile) {
+  const payload = {
+    n:  profile.name,
+    av: profile.avatar        || "🌸",
+    lp: profile.lastPeriodStart,
+    cl: profile.cycleLength   || 28,
+    pl: profile.periodLength  || 5,
+    od: profile.ovulationDay  || 14,
+    ol: profile.ovulationLength || 3,
+    sy: profile.symptoms      || [],
+    il: profile.intimacyLog   || [],
+    nt: profile.notes         || "",
+  };
+  try {
+    return "CYC-" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  } catch { return null; }
+}
+
+function decodePartnerCode(code) {
+  try {
+    const stripped = code.trim().replace(/^CYC-/i, "");
+    const json = JSON.parse(decodeURIComponent(escape(atob(stripped))));
+    // Validate required fields
+    if (!json.n || !json.lp) return null;
+    return {
+      name:           json.n,
+      avatar:         json.av || "🌸",
+      lastPeriodStart:json.lp,
+      cycleLength:    Math.max(18, Math.min(60,  json.cl || 28)),
+      periodLength:   Math.max(1,  Math.min(10,  json.pl || 5)),
+      ovulationDay:   Math.max(2,  Math.min(58,  json.od || 14)),
+      ovulationLength:Math.max(1,  Math.min(7,   json.ol || 3)),
+      symptoms:       Array.isArray(json.sy) ? json.sy : [],
+      intimacyLog:    Array.isArray(json.il) ? json.il : [],
+      notes:          json.nt || "",
+    };
+  } catch { return null; }
+}
 
 // ─── SHARED PRIMITIVES ────────────────────────────────────────────────────────
 
@@ -373,6 +417,107 @@ function AIInsight({ profile }) {
   );
 }
 
+// ─── SLIDER ROW ──────────────────────────────────────────────────────────────
+
+function SliderRow({ label, emoji, color, value, min, max, onChange, note }) {
+  const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  return (
+    <div style={{marginBottom:22}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+        <span style={{fontSize:14,fontWeight:800,color}}>{emoji} {label}</span>
+        <span style={{fontSize:22,fontWeight:900,color,fontFamily:T.fontSerif,lineHeight:1}}>
+          {value}<span style={{fontSize:13,fontWeight:600,color:T.textMute}}> days</span>
+        </span>
+      </div>
+      <div style={{position:"relative",height:36,display:"flex",alignItems:"center"}}>
+        <div style={{position:"absolute",left:0,right:0,height:6,borderRadius:3,background:"rgba(255,255,255,0.08)"}}/>
+        <div style={{position:"absolute",left:0,height:6,borderRadius:3,background:color,width:`${pct}%`,transition:"width 0.1s",boxShadow:`0 0 8px ${color}66`}}/>
+        <input type="range" min={min} max={max} value={value}
+          onChange={e=>onChange(parseInt(e.target.value))}
+          style={{position:"relative",width:"100%",height:36,opacity:0,cursor:"pointer",zIndex:2,margin:0,padding:0}}
+        />
+        <div style={{
+          position:"absolute",width:22,height:22,borderRadius:"50%",pointerEvents:"none",
+          background:"white",border:`3px solid ${color}`,
+          boxShadow:`0 2px 8px rgba(0,0,0,0.5),0 0 0 4px ${color}22`,
+          left:`calc(${pct}% - 11px)`,transition:"left 0.1s",
+        }}/>
+      </div>
+      {note && <div style={{fontSize:12,color:T.textMute,marginTop:5,lineHeight:1.55}}>{note}</div>}
+    </div>
+  );
+}
+
+// ─── SHARE CODE MODAL ────────────────────────────────────────────────────────
+
+function ShareCodeModal({ profile, onClose }) {
+  const code = encodePartnerCode(profile);
+  const [copied, setCopied] = useState(false);
+
+  function copyCode() {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    }).catch(() => {
+      // Fallback for older browsers
+      const el = document.createElement("textarea");
+      el.value = code; document.body.appendChild(el);
+      el.select(); document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true); setTimeout(() => setCopied(false), 2200);
+    });
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
+      <div className="scale-in" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,width:"100%",maxWidth:440,boxShadow:T.deepShadow}}>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{fontSize:22,fontWeight:900,color:T.text,marginBottom:4}}>📤 Partner Code</div>
+            <div style={{fontSize:13,color:T.textMute,lineHeight:1.5}}>Share with any period tracking app or send directly. The code contains all of {profile.name}'s cycle data.</div>
+          </div>
+          <button onClick={onClose} className="dd-btn" style={{background:"none",border:"none",color:T.textMute,fontSize:22,cursor:"pointer",padding:"0 0 0 12px",lineHeight:1,flexShrink:0}}>✕</button>
+        </div>
+
+        {/* Code box */}
+        <div style={{background:T.surface2,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:16,marginBottom:16,position:"relative"}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender,marginBottom:10}}>PARTNER CODE</div>
+          <div style={{
+            fontSize:12, fontFamily:"monospace", color:T.textSoft,
+            wordBreak:"break-all", lineHeight:1.7, userSelect:"all",
+            maxHeight:110, overflowY:"auto",
+          }}>{code}</div>
+        </div>
+
+        {/* What's included */}
+        <div style={{background:"rgba(124,92,191,0.08)",border:`1px solid ${T.lavender}22`,borderRadius:T.r.md,padding:"12px 14px",marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender,marginBottom:8}}>WHAT'S INCLUDED</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {["Name & avatar","Last period date","Cycle length","Phase boundaries","Symptoms","Intimacy log","Notes"].map(item => (
+              <span key={item} style={{fontSize:11,color:T.textSoft,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"3px 10px"}}>✓ {item}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",gap:10}}>
+          <DDBtn variant="ghost" onClick={onClose} style={{flex:1,padding:13}}>Close</DDBtn>
+          <button className="dd-btn" onClick={copyCode} style={{
+            flex:2,padding:13,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",
+            background:copied?"#4caf7a":"#111",color:"#fff",
+            boxShadow:copied?"0 4px 16px #4caf7a55":"0 4px 16px rgba(0,0,0,0.5)",
+            transition:"all 0.2s ease",
+          }}>
+            {copied ? "✓ Copied!" : "📋 Copy Code"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── PROFILE DETAIL ───────────────────────────────────────────────────────────
 
 function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
@@ -382,6 +527,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [showLogModal, setShowLogModal] = useState(false);
   const [logDate,      setLogDate]      = useState(todayStr());
   const [showDelModal, setShowDelModal] = useState(false);
+  const [showShareCode,setShowShareCode]= useState(false);
   const [periodFlash,  setPeriodFlash]  = useState(false);
 
   const day=getDayOfCycle(profile.lastPeriodStart,profile.cycleLength);
@@ -410,6 +556,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         <div className="fade-in" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px",gap:8}}>
           <DDBtn variant="ghost" onClick={onBack} style={{padding:"8px 16px",fontSize:13}}>← Back</DDBtn>
           <div style={{display:"flex",gap:8}}>
+            <DDBtn variant="ghost" onClick={()=>setShowShareCode(true)} style={{padding:"8px 14px",fontSize:12}}>📤 Share</DDBtn>
             <DDBtn variant="ghost" onClick={()=>onUpdate({...profile,hidden:!profile.hidden})} style={{padding:"8px 14px",fontSize:12}}>
               {profile.hidden?"👁 Show":"🙈 Hide"}
             </DDBtn>
@@ -619,37 +766,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
             {key:"luteal",       label:"Luteal",     days:b.luteal,       color:"#9b59b6"},
           ];
 
-          // Shared slider row component (inline, avoids extra component def)
-          const SliderRow = ({label, emoji, color, value, min, max, onChange, note}) => (
-            <div style={{marginBottom:22}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
-                <span style={{fontSize:14,fontWeight:800,color}}>{emoji} {label}</span>
-                <span style={{fontSize:22,fontWeight:900,color,fontFamily:T.fontSerif,lineHeight:1}}>{value}<span style={{fontSize:13,fontWeight:600,color:T.textMute}}> days</span></span>
-              </div>
-              <div style={{position:"relative",height:36,display:"flex",alignItems:"center"}}>
-                {/* Track bg */}
-                <div style={{position:"absolute",left:0,right:0,height:6,borderRadius:3,background:"rgba(255,255,255,0.08)"}}/>
-                {/* Filled track */}
-                <div style={{position:"absolute",left:0,height:6,borderRadius:3,background:color,width:`${((value-min)/(max-min))*100}%`,transition:"width 0.15s ease",boxShadow:`0 0 8px ${color}66`}}/>
-                <input type="range" min={min} max={max} value={value}
-                  onChange={e=>onChange(parseInt(e.target.value))}
-                  style={{
-                    position:"relative",width:"100%",height:36,opacity:0,cursor:"pointer",
-                    zIndex:2,margin:0,padding:0,WebkitAppearance:"none",
-                  }}
-                />
-                {/* Thumb */}
-                <div style={{
-                  position:"absolute",width:22,height:22,borderRadius:"50%",
-                  background:"white",border:`3px solid ${color}`,
-                  boxShadow:`0 2px 8px rgba(0,0,0,0.5),0 0 0 4px ${color}22`,
-                  left:`calc(${((value-min)/(max-min))*100}% - 11px)`,
-                  transition:"left 0.15s ease",pointerEvents:"none",
-                }}/>
-              </div>
-              {note&&<div style={{fontSize:12,color:T.textMute,marginTop:5,lineHeight:1.5}}>{note}</div>}
-            </div>
-          );
+          // Shared slider row — now a proper top-level component above
 
           return (
             <div className="fade-in">
@@ -687,25 +804,25 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
                 {/* Period (Menstruation) length */}
                 <SliderRow label="Period Duration" emoji="🔴" color="#e84393"
-                  value={pd} min={1} max={Math.min(10, ovd-1)}
+                  value={pd} min={1} max={Math.min(10, ovd-2)}
                   note={`Menstruation: Day 1 – Day ${pd}`}
                   onChange={v=>onUpdate({...profile, periodLength:v})}
                 />
 
                 {/* Follicular ends / Ovulation starts */}
                 <SliderRow label="Ovulation Starts" emoji="🌱" color="#f5a623"
-                  value={ovd} min={pd+1} max={cl-2}
-                  note={`Follicular phase: Day ${pd+1} – Day ${ovd-1} (${Math.max(0,ovd-1-pd)} days)`}
+                  value={ovd} min={pd+2} max={cl-2}
+                  note={`Follicular: Day ${pd+1} – Day ${ovd-1} (${ovd-1-pd} days)`}
                   onChange={v=>{
-                    const newOvl = Math.min(ovl, cl - v);
-                    onUpdate({...profile, ovulationDay:v, ovulationLength:newOvl});
+                    const newOvl = Math.min(ovl, cl - v - 1);
+                    onUpdate({...profile, ovulationDay:v, ovulationLength:Math.max(1,newOvl)});
                   }}
                 />
 
                 {/* Ovulation window length */}
                 <SliderRow label="Ovulation Window" emoji="⚡" color="#4caf7a"
-                  value={ovl} min={1} max={Math.min(7, cl-ovd)}
-                  note={`Ovulation: Day ${ovd} – Day ${ovd+ovl-1} · Luteal: Day ${ovd+ovl} – Day ${cl} (${Math.max(0,cl-(ovd+ovl)+1)} days)`}
+                  value={ovl} min={1} max={Math.min(7, cl-ovd-1)}
+                  note={`Ovulation: Day ${ovd} – Day ${ovd+ovl-1} · Luteal: Day ${ovd+ovl} – Day ${cl} (${cl-(ovd+ovl)+1} days)`}
                   onChange={v=>onUpdate({...profile, ovulationLength:v})}
                 />
 
@@ -716,7 +833,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 {/* Segmented bar */}
                 <div style={{display:"flex",borderRadius:T.r.md,overflow:"hidden",height:32,marginBottom:12,gap:2}}>
                   {segments.map(seg=>{
-                    const len = seg.days[1]-seg.days[0]+1;
+                    const len = Math.max(0, seg.days[1]-seg.days[0]+1);
+                    if(len===0) return null;
                     const w   = (len/cl)*100;
                     const isCur = phase===seg.key;
                     return (
@@ -725,6 +843,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                         display:"flex",alignItems:"center",justifyContent:"center",
                         transition:"all 0.25s ease",
                         boxShadow:isCur?`0 0 12px ${seg.color}88`:"none",
+                        minWidth:0,overflow:"hidden",
                       }}>
                         {len>=2&&<span style={{fontSize:10,fontWeight:800,color:isCur?"#111":"rgba(255,255,255,0.8)"}}>{len}d</span>}
                       </div>
@@ -734,7 +853,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 {/* Phase rows */}
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
                   {segments.map(seg=>{
-                    const len = seg.days[1]-seg.days[0]+1;
+                    const len = Math.max(0, seg.days[1]-seg.days[0]+1);
+                    if(len===0) return null;
                     const isCur = phase===seg.key;
                     return (
                       <div key={seg.key} style={{
@@ -813,7 +933,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         )}
       </div>
 
-      {/* ── LOG INTIMACY MODAL (bottom sheet) ── */}
+      {showShareCode&&<ShareCodeModal profile={profile} onClose={()=>setShowShareCode(false)}/>}
+
       {showLogModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}}>
           <div className="sheet-in" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:"22px 22px 0 0",padding:28,width:"100%",maxWidth:500,boxShadow:"0 -8px 36px rgba(0,0,0,0.5)"}}>
@@ -850,10 +971,34 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
 // ─── ADD PROFILE ──────────────────────────────────────────────────────────────
 
-function AddProfile({ onAdd, onBack }) {
-  const [form,setForm]=useState({name:"",lastPeriodStart:todayStr(),cycleLength:28,periodLength:5,avatar:"🌸"});
-  const ok=form.name.trim().length>0;
+function AddProfile({ onAdd, onBack, startTab="manual" }) {
+  const [mode,    setMode]    = useState(startTab); // "manual" | "import"
+  const [form,    setForm]    = useState({name:"",lastPeriodStart:todayStr(),cycleLength:28,periodLength:5,avatar:"🌸"});
+  const [codeStr, setCodeStr] = useState("");
+  const [decoded, setDecoded] = useState(null);
+  const [codeErr, setCodeErr] = useState(false);
+  const [editingImport, setEditingImport] = useState(false);
+
+  const ok = form.name.trim().length > 0;
   const inputStyle={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block"};
+
+  function tryDecode(val) {
+    setCodeStr(val);
+    if (!val.trim()) { setDecoded(null); setCodeErr(false); return; }
+    const result = decodePartnerCode(val.trim());
+    if (result) { setDecoded(result); setCodeErr(false); }
+    else        { setDecoded(null);   setCodeErr(true);  }
+  }
+
+  function submitImport() {
+    if (!decoded) return;
+    onAdd({ ...decoded, id: Date.now().toString(), hidden: false });
+  }
+
+  function submitManual() {
+    if (!ok) return;
+    onAdd({ ...form, id:Date.now().toString(), symptoms:[], intimacyLog:[], notes:"", hidden:false, ovulationDay:form.ovulationDay||14, ovulationLength:form.ovulationLength||3 });
+  }
 
   return (
     <div style={{minHeight:"100vh",background:T.pageBg,color:T.text,fontFamily:T.fontBody}}>
@@ -861,45 +1006,205 @@ function AddProfile({ onAdd, onBack }) {
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"18px 16px 100px"}}>
         <DDBtn variant="ghost" onClick={onBack} style={{marginBottom:24,padding:"8px 16px",fontSize:13}}>← Back</DDBtn>
 
-        <div className="fade-in" style={{marginBottom:26}}>
+        <div className="fade-in" style={{marginBottom:22}}>
           <h2 style={{fontFamily:T.fontSerif,fontSize:30,fontWeight:800,marginBottom:5,lineHeight:1.1}}>Add Profile</h2>
-          <p style={{color:T.textSoft,fontSize:14,lineHeight:1.55}}>Track her cycle and get personalized insights.</p>
+          <p style={{color:T.textSoft,fontSize:14,lineHeight:1.55}}>Fill in manually or paste a partner code to import.</p>
         </div>
 
-        <div className="fade-in-1" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
-          <Lbl>Choose Avatar</Lbl>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
-            {AVATARS.map(a=>(
-              <button key={a} onClick={()=>setForm({...form,avatar:a})} className="dd-btn" style={{
-                width:46,height:46,fontSize:21,borderRadius:13,cursor:"pointer",
-                background:form.avatar===a?"rgba(124,92,191,0.25)":"rgba(255,255,255,0.05)",
-                border:`2px solid ${form.avatar===a?T.lavender:T.border}`,
-                transition:"all 0.15s",
-              }}>{a}</button>
-            ))}
-          </div>
-          <Hr/>
-          {[
-            {label:"Name",                    key:"name",            type:"text",   ph:"Her name…"},
-            {label:"Last Period Start Date",  key:"lastPeriodStart", type:"date"   },
-            {label:"Average Cycle Length",    key:"cycleLength",     type:"number", ph:"28"},
-            {label:"Period Duration (Days)",  key:"periodLength",    type:"number", ph:"5"},
-          ].map(f=>(
-            <div key={f.key} style={{marginBottom:16}}>
-              <Lbl>{f.label}</Lbl>
-              <input type={f.type} value={form[f.key]} placeholder={f.ph} className="dd-input"
-                min={f.type==="number"?1:undefined} max={f.type==="number"?60:undefined}
-                onChange={e=>setForm({...form,[f.key]:f.type==="number"?Math.max(1,parseInt(e.target.value)||28):e.target.value})}
-                style={inputStyle} autoFocus={f.key==="name"}/>
-            </div>
+        {/* Mode toggle — DD pill tab style */}
+        <div style={{display:"flex",background:"rgba(0,0,0,0.25)",borderRadius:T.r.pill,padding:4,marginBottom:20,border:`1px solid ${T.border}`,gap:3}}>
+          {[{id:"manual",label:"✏️ Manual"},{id:"import",label:"📥 Import Code"}].map(m=>(
+            <button key={m.id} onClick={()=>setMode(m.id)} className="tab-btn" style={{
+              flex:1,border:"none",borderRadius:T.r.pill,padding:"10px 8px",
+              background:mode===m.id?T.lavender:"transparent",
+              color:mode===m.id?"#fff":T.textMute,
+              fontSize:13,fontWeight:mode===m.id?800:600,cursor:"pointer",
+              fontFamily:T.fontBody,
+              boxShadow:mode===m.id?`0 2px 10px ${T.lavender}45`:"none",
+            }}>{m.label}</button>
           ))}
         </div>
 
-        {/* DD primary button: big black CTA */}
-        <button className="dd-btn" onClick={()=>{if(ok)onAdd({...form,id:Date.now().toString(),symptoms:[],intimacyLog:[],notes:"",hidden:false,ovulationDay:form.ovulationDay||14,ovulationLength:form.ovulationLength||3});}} disabled={!ok}
-          style={{width:"100%",padding:"16px",background:ok?"#111":"rgba(255,255,255,0.1)",color:ok?T.text:"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,cursor:ok?"pointer":"not-allowed",boxShadow:ok?"0 4px 18px rgba(0,0,0,0.55)":"none",letterSpacing:"0.02em"}}>
-          Add Profile →
-        </button>
+        {/* ── MANUAL MODE ── */}
+        {mode==="manual"&&(
+          <div className="fade-in">
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
+              <Lbl>Choose Avatar</Lbl>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+                {AVATARS.map(a=>(
+                  <button key={a} onClick={()=>setForm({...form,avatar:a})} className="dd-btn" style={{
+                    width:46,height:46,fontSize:21,borderRadius:13,cursor:"pointer",
+                    background:form.avatar===a?"rgba(124,92,191,0.25)":"rgba(255,255,255,0.05)",
+                    border:`2px solid ${form.avatar===a?T.lavender:T.border}`,transition:"all 0.15s",
+                  }}>{a}</button>
+                ))}
+              </div>
+              <Hr/>
+              {[
+                {label:"Name",                   key:"name",            type:"text",   ph:"Her name…"},
+                {label:"Last Period Start Date",  key:"lastPeriodStart", type:"date"   },
+                {label:"Average Cycle Length",    key:"cycleLength",     type:"number", ph:"28"},
+                {label:"Period Duration (Days)",  key:"periodLength",    type:"number", ph:"5"},
+              ].map(f=>(
+                <div key={f.key} style={{marginBottom:16}}>
+                  <Lbl>{f.label}</Lbl>
+                  <input type={f.type} value={form[f.key]} placeholder={f.ph} className="dd-input"
+                    min={f.type==="number"?1:undefined} max={f.type==="number"?60:undefined}
+                    onChange={e=>setForm({...form,[f.key]:f.type==="number"?Math.max(1,parseInt(e.target.value)||28):e.target.value})}
+                    style={inputStyle} autoFocus={f.key==="name"}/>
+                </div>
+              ))}
+            </div>
+            <button className="dd-btn" onClick={submitManual} disabled={!ok}
+              style={{width:"100%",padding:"16px",background:ok?"#111":"rgba(255,255,255,0.1)",color:ok?T.text:"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,cursor:ok?"pointer":"not-allowed",boxShadow:ok?"0 4px 18px rgba(0,0,0,0.55)":"none",letterSpacing:"0.02em"}}>
+              Add Profile →
+            </button>
+          </div>
+        )}
+
+        {/* ── IMPORT MODE ── */}
+        {mode==="import"&&(
+          <div className="fade-in">
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
+
+              <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:6}}>📥 Paste Partner Code</div>
+              <div style={{fontSize:13,color:T.textMute,lineHeight:1.6,marginBottom:16}}>
+                Paste a code generated by Cyclr or exported from any period tracking app. All data will be imported instantly.
+              </div>
+
+              <textarea
+                value={codeStr}
+                onChange={e=>tryDecode(e.target.value)}
+                placeholder="Paste code here — starts with CYC- or paste raw data…"
+                className="dd-input"
+                style={{...inputStyle,minHeight:100,resize:"vertical",fontSize:13,fontFamily:"monospace",marginBottom:0}}
+              />
+
+              {/* Error state */}
+              {codeErr&&(
+                <div style={{marginTop:10,padding:"10px 14px",background:"rgba(224,85,85,0.12)",border:"1px solid rgba(224,85,85,0.3)",borderRadius:T.r.md,fontSize:13,color:"#ff7070"}}>
+                  ⚠️ Invalid code — make sure you copied the full code including the CYC- prefix.
+                </div>
+              )}
+
+              {/* Success preview */}
+              {decoded&&!editingImport&&(
+                <div className="fade-in" style={{marginTop:14}}>
+                  <div style={{padding:"4px 0 10px",fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.green}}>✓ CODE RECOGNISED</div>
+                  {/* Profile preview card */}
+                  <div style={{background:T.surface2,border:`1px solid ${T.green}33`,borderRadius:T.r.lg,padding:16,marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                      <div style={{fontSize:28}}>{decoded.avatar}</div>
+                      <div>
+                        <div style={{fontSize:17,fontWeight:800,color:T.text}}>{decoded.name}</div>
+                        <div style={{fontSize:12,color:T.textMute}}>Cycle: {decoded.cycleLength}d · Period: {decoded.periodLength}d · Ovulation day {decoded.ovulationDay}</div>
+                      </div>
+                    </div>
+                    {/* Phase bar preview */}
+                    {(()=>{
+                      const b=getPhaseBounds(decoded);
+                      const cl=decoded.cycleLength;
+                      return (
+                        <div style={{display:"flex",borderRadius:6,overflow:"hidden",height:10,gap:2}}>
+                          {[
+                            {key:"menstruation",days:b.menstruation,color:"#e84393"},
+                            {key:"follicular",  days:b.follicular,  color:"#f5a623"},
+                            {key:"ovulation",   days:b.ovulation,   color:"#4caf7a"},
+                            {key:"luteal",      days:b.luteal,      color:"#9b59b6"},
+                          ].map(s=>{
+                            const len = Math.max(0, s.days[1]-s.days[0]+1);
+                            if(len===0) return null;
+                            return <div key={s.key} style={{width:`${(len/cl)*100}%`,background:s.color,borderRadius:3}}/>;
+                          })}
+                        </div>
+                      );
+                    })()}
+                    <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                      {[
+                        {label:`📅 Last period`,  val:fmtDate(decoded.lastPeriodStart)},
+                        {label:`💕 Sessions`,      val:decoded.intimacyLog.length},
+                        {label:`🏷 Symptoms`,      val:decoded.symptoms.length},
+                      ].map(s=>(
+                        <span key={s.label} style={{fontSize:11,color:T.textSoft,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"4px 10px"}}>{s.label}: <b style={{color:T.text}}>{s.val}</b></span>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Options */}
+                  <div style={{display:"flex",gap:10}}>
+                    <button className="dd-btn" onClick={()=>setEditingImport(true)} style={{flex:1,padding:12,background:T.surface2,color:T.textSoft,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                      ✏️ Edit First
+                    </button>
+                    <button className="dd-btn" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                      ✓ Import Profile
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit-before-import mode */}
+              {decoded&&editingImport&&(
+                <div className="fade-in" style={{marginTop:14}}>
+                  <div style={{padding:"4px 0 14px",fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender}}>EDITING IMPORTED DATA</div>
+                  {/* Avatar */}
+                  <Lbl>Avatar</Lbl>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+                    {AVATARS.map(a=>(
+                      <button key={a} onClick={()=>setDecoded({...decoded,avatar:a})} className="dd-btn" style={{
+                        width:42,height:42,fontSize:19,borderRadius:11,cursor:"pointer",
+                        background:decoded.avatar===a?"rgba(124,92,191,0.25)":"rgba(255,255,255,0.05)",
+                        border:`2px solid ${decoded.avatar===a?T.lavender:T.border}`,transition:"all 0.15s",
+                      }}>{a}</button>
+                    ))}
+                  </div>
+                  {[
+                    {label:"Name",                   key:"name",            type:"text"},
+                    {label:"Last Period Start Date",  key:"lastPeriodStart", type:"date"},
+                    {label:"Cycle Length (Days)",     key:"cycleLength",     type:"number"},
+                    {label:"Period Duration (Days)",  key:"periodLength",    type:"number"},
+                    {label:"Ovulation Starts (Day)",  key:"ovulationDay",    type:"number"},
+                    {label:"Ovulation Window (Days)", key:"ovulationLength", type:"number"},
+                  ].map(f=>(
+                    <div key={f.key} style={{marginBottom:14}}>
+                      <Lbl>{f.label}</Lbl>
+                      <input type={f.type} value={decoded[f.key]||""} className="dd-input"
+                        min={f.type==="number"?1:undefined} max={f.type==="number"?60:undefined}
+                        onChange={e=>setDecoded({...decoded,[f.key]:f.type==="number"?Math.max(1,parseInt(e.target.value)||1):e.target.value})}
+                        style={inputStyle}/>
+                    </div>
+                  ))}
+                  <div style={{display:"flex",gap:10,marginTop:6}}>
+                    <button className="dd-btn" onClick={()=>setEditingImport(false)} style={{flex:1,padding:12,background:T.surface2,color:T.textSoft,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                      ← Back
+                    </button>
+                    <button className="dd-btn" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                      ✓ Import Profile
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* How it works info box */}
+            {!decoded&&!codeErr&&(
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:18,boxShadow:T.cardShadow}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.text,marginBottom:12}}>💡 How to get a code</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {[
+                    {step:"1", text:"Open any period tracking app (Flo, Clue, Natural Cycles, etc.)"},
+                    {step:"2", text:"Go to the data export or share feature"},
+                    {step:"3", text:"If using Cyclr — open any profile → tap 📤 Share → Copy Code"},
+                    {step:"4", text:"Paste the code above and your partner's data imports instantly"},
+                  ].map(s=>(
+                    <div key={s.step} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:T.lavender+"22",border:`1px solid ${T.lavender}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:T.lavender,flexShrink:0}}>{s.step}</div>
+                      <div style={{fontSize:13,color:T.textSoft,lineHeight:1.55,paddingTop:2}}>{s.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -907,7 +1212,7 @@ function AddProfile({ onAdd, onBack }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
+function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
   const [showHidden,setShowHidden]=useState(false);
   const visible=profiles.filter(p=>showHidden?p.hidden:!p.hidden);
   const hiddenCt=profiles.filter(p=>p.hidden).length;
@@ -930,8 +1235,8 @@ function Dashboard({ user, profiles, onSelect, onAdd, onLogout }) {
               <p style={{fontSize:12,color:T.textMute}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end",paddingTop:4}}>
-              {/* DD style: black Add button */}
               <button className="dd-btn" onClick={onAdd} style={{background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,padding:"9px 20px",fontSize:13,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 14px rgba(0,0,0,0.5)"}}>+ Add Profile</button>
+              <DDBtn variant="ghost" onClick={onImport} style={{padding:"7px 14px",fontSize:12}}>📥 Import Code</DDBtn>
               <DDBtn variant="ghost" onClick={onLogout} style={{padding:"7px 14px",fontSize:12}}>Sign out</DDBtn>
             </div>
           </div>
@@ -1076,19 +1381,13 @@ function Login({ onLogin }) {
         {/* The actual form card */}
         <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,boxShadow:T.deepShadow}}>
           <Lbl>Username</Lbl>
-          {/* DD: input + small "Add" button side by side */}
-          <div style={{display:"flex",gap:10,marginBottom:20}}>
+          <div style={{marginBottom:20}}>
             <input value={username} onChange={e=>setUsername(e.target.value)}
               onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
               onKeyDown={e=>e.key==="Enter"&&ok&&onLogin(username.trim())}
               placeholder="Enter your name" autoFocus className="dd-input"
-              style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1.5px solid ${focused?T.borderMd:T.border}`,borderRadius:T.r.md,padding:"13px 16px",color:T.text,fontSize:15,outline:"none",boxShadow:focused?"0 0 0 3px rgba(255,255,255,0.06)":undefined,transition:"border-color 0.14s,box-shadow 0.14s"}}
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${focused?T.borderMd:T.border}`,borderRadius:T.r.md,padding:"13px 16px",color:T.text,fontSize:15,outline:"none",boxShadow:focused?"0 0 0 3px rgba(255,255,255,0.06)":undefined,transition:"border-color 0.14s,box-shadow 0.14s"}}
             />
-            {/* Small "Add" style black pill (exactly like DD "Add" button) */}
-            <button className="dd-btn" onClick={()=>ok&&onLogin(username.trim())}
-              style={{background:"#111",color:T.text,border:"none",borderRadius:T.r.md,padding:"0 22px",fontSize:14,fontWeight:800,cursor:ok?"pointer":"not-allowed",opacity:ok?1:0.4,boxShadow:"0 3px 10px rgba(0,0,0,0.4)"}}>
-              Add
-            </button>
           </div>
           {/* Big black CTA — "Choose Deck & Start Playing" equivalent */}
           <button className="dd-btn" onClick={()=>ok&&onLogin(username.trim())} disabled={!ok}
@@ -1105,10 +1404,11 @@ function Login({ onLogin }) {
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen,  setScreen]  = useState("loading");
-  const [user,    setUser]    = useState(null);
-  const [profiles,setProfiles]= useState([]);
-  const [selected,setSelected]= useState(null);
+  const [screen,     setScreen]     = useState("loading");
+  const [user,       setUser]       = useState(null);
+  const [profiles,   setProfiles]   = useState([]);
+  const [selected,   setSelected]   = useState(null);
+  const [addMode,    setAddMode]    = useState("manual"); // "manual" | "import"
 
   useEffect(()=>{
     try {
@@ -1123,10 +1423,12 @@ export default function App() {
   function save(p){const s=Array.isArray(p)?p:[];setProfiles(s);localStorage.setItem("cyclr_profiles",JSON.stringify(s));}
   function handleLogin(u){const usr={username:u};setUser(usr);localStorage.setItem("cyclr_user",JSON.stringify(usr));setScreen("dashboard");}
   function handleLogout(){localStorage.removeItem("cyclr_user");setUser(null);setScreen("login");}
-  function handleAdd(p){save([...profiles,p]);setScreen("dashboard");}
+  function handleAdd(p){save([...profiles,p]);setAddMode("manual");setScreen("dashboard");}
   function handleUpdate(u){const np=profiles.map(x=>x.id===u.id?u:x);save(np);setSelected(u);}
   function handleDelete(){save(profiles.filter(p=>p.id!==selected.id));setSelected(null);setScreen("dashboard");}
   function handleSelect(p){setSelected(p);setScreen("profile");}
+  function goAdd()   { setAddMode("manual");  setScreen("add"); }
+  function goImport(){ setAddMode("import");  setScreen("add"); }
 
   if(screen==="loading") return (
     <div style={{minHeight:"100vh",background:T.pageBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1137,10 +1439,15 @@ export default function App() {
   return (
     <>
       <GlobalStyles/>
-      {screen==="login"     && <Login onLogin={handleLogin}/>}
-      {screen==="add"       && <AddProfile onAdd={handleAdd} onBack={()=>setScreen("dashboard")}/>}
-      {screen==="profile"   && selected && <ProfileDetail profile={selected} onUpdate={handleUpdate} onBack={()=>setScreen("dashboard")} onDelete={handleDelete}/>}
-      {(screen==="dashboard"||(screen==="profile"&&!selected)) && <Dashboard user={user||{username:"User"}} profiles={profiles} onSelect={handleSelect} onAdd={()=>setScreen("add")} onLogout={handleLogout}/>}
+      {screen==="login"   && <Login onLogin={handleLogin}/>}
+      {screen==="add"     && <AddProfile onAdd={handleAdd} onBack={()=>setScreen("dashboard")} startTab={addMode}/>}
+      {screen==="profile" && selected && <ProfileDetail profile={selected} onUpdate={handleUpdate} onBack={()=>setScreen("dashboard")} onDelete={handleDelete}/>}
+      {(screen==="dashboard"||(screen==="profile"&&!selected)) && (
+        <Dashboard
+          user={user||{username:"User"}} profiles={profiles}
+          onSelect={handleSelect} onAdd={goAdd} onImport={goImport} onLogout={handleLogout}
+        />
+      )}
     </>
   );
 }
