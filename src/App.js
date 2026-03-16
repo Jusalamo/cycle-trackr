@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import React from "react";
 
 // ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
 
@@ -37,8 +36,7 @@ const GLOBAL_CSS = `
   @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
   @keyframes spin    { to { transform:rotate(360deg); } }
   @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.45; } }
-  @keyframes glow    { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
-
+  
   .fade-up   { animation: fadeUp 0.28s ease both; }
   .fade-up-1 { animation: fadeUp 0.28s 0.05s ease both; }
   .fade-up-2 { animation: fadeUp 0.28s 0.10s ease both; }
@@ -110,8 +108,6 @@ const T = {
   page:     "#111111",    // body background — deep, not grey
   surface:  "#1c1c1e",   // iOS-dark-like card surface
   surface2: "#242426",   // elevated surface
-  surface3: "#2c2c2e",   // inputs, rows
-
   // ── Borders (barely visible) ──
   border:   "rgba(255,255,255,0.07)",
   borderMd: "rgba(255,255,255,0.12)",
@@ -119,7 +115,7 @@ const T = {
   // ── 30% text hierarchy ──  (3 weights, not 5 random opacities)
   text:     "#f2f2f7",   // primary  — iOS-style near-white
   textSub:  "#8e8e93",   // secondary — iOS grey
-  textMute: "#48484a",   // tertiary — very dim
+  textMute: "#6e6e73",   // tertiary — very dim
 
   // ── 10% brand accent ──
   accent:   "#8B6FE8",   // single brand purple
@@ -894,6 +890,8 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const [showShareCode,setShowShareCode]= useState(false);
   const [showKebab,    setShowKebab]    = useState(false);
   const [periodFlash,  setPeriodFlash]  = useState(false);
+  const [dupeDateMsg,  setDupeDateMsg]  = useState(false);
+  const [undoPeriod,   setUndoPeriod]   = useState(null);
 
   const day=getDayOfCycle(profile.lastPeriodStart,profile.cycleLength);
   const phase=getPhaseFromDay(day,profile), PD=PHASES[phase], tips=TIPS[phase];
@@ -905,15 +903,15 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const calLabel=(()=>{const b=new Date();b.setMonth(b.getMonth()+monthOffset);return b.toLocaleString("default",{month:"long",year:"numeric"});})();
 
   function toggleSym(s){const c=profile.symptoms||[];onUpdate({...profile,symptoms:c.includes(s)?c.filter(x=>x!==s):[...c,s]});}
-  function logIntimacy(){const c=profile.intimacyLog||[];if(!c.includes(logDate))onUpdate({...profile,intimacyLog:[...c,logDate].sort()});setShowLogModal(false);}
+  function logIntimacy(){const c=profile.intimacyLog||[];if(c.includes(logDate)){setDupeDateMsg(true);setTimeout(()=>setDupeDateMsg(false),2500);return;}onUpdate({...profile,intimacyLog:[...c,logDate].sort()});setShowLogModal(false);}
   function removeIntimacy(d){onUpdate({...profile,intimacyLog:(profile.intimacyLog||[]).filter(x=>x!==d)});}
-  function markPeriod(){onUpdate({...profile,lastPeriodStart:todayStr()});setPeriodFlash(true);setTimeout(()=>setPeriodFlash(false),2200);}
+  function markPeriod(){const prev=profile.lastPeriodStart;setUndoPeriod(prev);onUpdate({...profile,lastPeriodStart:todayStr()});setPeriodFlash(true);setTimeout(()=>{setPeriodFlash(false);setUndoPeriod(null);},5000);}
 
-  const inputStyle={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block"};
+  const inputStyle={};  // uses .field CSS class — no inline override needed
   const tabs=[{id:"overview",label:"Overview"},{id:"calendar",label:"Calendar"},{id:"insights",label:"Insights"},{id:"edit",label:"Edit"}];
 
   return (
-    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
+    <div style={{minHeight:"100%",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"0 16px 120px"}}>
 
         {/* ── TOP BAR — back arrow left, kebab right ── */}
@@ -929,7 +927,6 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
         {/* ── HERO CARD ── */}
         <div className="fade-up" style={{position:"relative",marginBottom:16}}>
-          <div style={{position:"absolute",top:-16,right:-16,width:130,height:130,borderRadius:"60% 40% 55% 45%",background:PD.color+"14",pointerEvents:"none",zIndex:-1}}/>
           <div style={{background:T.surface,border:`1px solid ${PD.color}28`,borderRadius:T.r.xl,padding:22,boxShadow:T.shadow}}>
             <div style={{display:"flex",gap:14,alignItems:"center",marginBottom:18}}>
               <div style={{width:68,height:68,borderRadius:20,background:`linear-gradient(135deg,${PD.color}33,${PD.color}11)`,border:`2px solid ${PD.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>{profile.avatar}</div>
@@ -943,7 +940,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               <CycleRing day={day} cycleLength={profile.cycleLength} profile={profile} size={76}/>
             </div>
             {/* Risk banner */}
-            <div style={{background:tips.safe?"rgba(76,175,122,0.1)":"rgba(232,67,147,0.1)",border:`1px solid ${tips.safe?T.green+"44":PD.color+"44"}`,borderRadius:T.r.md,padding:"12px 15px",display:"flex",gap:11,alignItems:"flex-start"}}>
+            <div style={{background:tips.safe?`${T.green}15`:`${PD.color}12`,border:`1px solid ${tips.safe?T.green+"44":PD.color+"44"}`,borderRadius:T.r.md,padding:"12px 15px",display:"flex",gap:11,alignItems:"flex-start"}}>
               <span style={{fontSize:18,flexShrink:0,lineHeight:1.4}}>{tips.safe?"✅":"⚠️"}</span>
               <div>
                 <div style={{fontSize:11,fontWeight:800,letterSpacing:1.8,color:tips.safe?T.green:PD.color,marginBottom:4}}>{tips.risk}</div>
@@ -956,7 +953,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         {/* ── TABS ── */}
         <div className="fade-up-1" style={{display:"flex",background:"rgba(0,0,0,0.25)",borderRadius:T.r.pill,padding:4,marginBottom:20,border:`1px solid ${T.border}`,gap:3}}>
           {tabs.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)} className="tab-btn" style={{
+            <button key={t.id} onClick={()=>setTab(t.id)} className="tab pressable" style={{
               flex:1,border:"none",borderRadius:T.r.pill,padding:"9px 4px",
               background:tab===t.id?PD.color:"transparent",
               color:tab===t.id?"#111":T.textMute,
@@ -973,9 +970,9 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
             {/* 4 stat tiles — period/ovulation/energy/mood */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
               {[
-                {label:"Period in", val:dToP<=0?"Today":`${dToP}d`, sub:fmtDate(nextP),   color:"#e84393", bg:PHASES.menstruation.bg},
+                {label:"Period in", val:dToP<=0?"Today":`${dToP}d`, sub:fmtDate(nextP),   color:PHASES.menstruation.color, bg:PHASES.menstruation.bg},
                 {label:"Ovulation", val:dToO<=0?"Now!":dToO===1?"Tmrw":`${dToO}d`,        sub:fmtDate(nextO), color:T.green, bg:PHASES.ovulation.bg},
-                {label:"Energy",    val:tips.energy,  sub:"Current phase",                 color:"#f5a623", bg:PHASES.follicular.bg},
+                {label:"Energy",    val:tips.energy,  sub:"Current phase",                 color:PHASES.follicular.color, bg:PHASES.follicular.bg},
                 {label:"Mood",      val:tips.mood,    sub:"Expected",                      color:T.accent, bg:PHASES.luteal.bg},
               ].map((s,i)=>(
                 <div key={s.label} className={`fade-up-${i+1}`} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:T.r.lg,padding:"15px 17px"}}>
@@ -1018,18 +1015,30 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               </div>
             </div>
 
-            {/* Period started today — inline row, not a big button */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontSize:14,fontWeight:700,color:T.text}}>🔴 Period started today?</div>
-                <div style={{fontSize:12,color:T.textMute,marginTop:2}}>Updates your last period date to today</div>
+            {/* Period started today — inline row with undo */}
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 16px",marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600,color:T.text}}>🔴 Period started today?</div>
+                  <div style={{fontSize:12,color:T.textMute,marginTop:2}}>Updates your last period date to today</div>
+                </div>
+                <button onClick={markPeriod} className="pressable" style={{
+                  background:periodFlash?T.green:PHASES.menstruation.color,color:"#fff",border:"none",
+                  borderRadius:T.r.lg,padding:"9px 16px",fontSize:13,fontWeight:700,
+                  cursor:"pointer",flexShrink:0,
+                  boxShadow:`0 3px 10px ${periodFlash?T.green+"44":PHASES.menstruation.color+"44"}`,
+                  transition:"all 0.2s",
+                }}>{periodFlash?"✓ Saved":"Mark"}</button>
               </div>
-              <button onClick={markPeriod} className="pressable" style={{
-                background:periodFlash?"#4caf7a":"#e84393",color:"#fff",border:"none",
-                borderRadius:T.r.lg,padding:"9px 16px",fontSize:13,fontWeight:800,
-                cursor:"pointer",flexShrink:0,boxShadow:`0 3px 10px ${periodFlash?"#4caf7a55":"#e8439355"}`,
-                transition:"all 0.2s",
-              }}>{periodFlash?"✓ Saved":"Mark"}</button>
+              {/* Undo toast */}
+              {undoPeriod&&(
+                <div className="fade-up" style={{marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:"rgba(139,111,232,0.1)",border:`1px solid ${T.accent}30`,borderRadius:T.r.md}}>
+                  <span style={{fontSize:12,color:T.textSub}}>Period date updated</span>
+                  <button onClick={()=>{onUpdate({...profile,lastPeriodStart:undoPeriod});setUndoPeriod(null);setPeriodFlash(false);}} className="pressable" style={{background:"none",border:"none",color:T.accent,fontSize:12,fontWeight:700,cursor:"pointer",padding:"2px 6px"}}>
+                    Undo
+                  </button>
+                </div>
+              )}
             </div>
 
             <AIInsight profile={profile}/>
@@ -1180,14 +1189,11 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               {icon:"📤",label:"Share Partner Code",  action:()=>{setShowKebab(false);setShowShareCode(true);}},
               {icon:profile.hidden?"👁":"🙈", label:profile.hidden?"Show Profile":"Hide Profile", action:()=>{onUpdate({...profile,hidden:!profile.hidden});setShowKebab(false);}},
             ].map(item=>(
-              <button key={item.label} onClick={item.action} style={{
+              <button key={item.label} onClick={item.action} className="pressable" style={{
                 display:"flex",alignItems:"center",gap:16,width:"100%",
                 padding:"14px 22px",background:"none",border:"none",
-                color:T.text,fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",
-                transition:"background 0.12s",
-              }}
-              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
-              onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                color:T.text,fontSize:15,fontWeight:600,cursor:"pointer",textAlign:"left",
+              }}>
                 <span style={{fontSize:20,width:28,textAlign:"center"}}>{item.icon}</span>{item.label}
               </button>
             ))}
@@ -1215,7 +1221,12 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
             <h3 style={{fontFamily:T.fontDisp,fontSize:20,marginBottom:20}}>💕 Log Intimacy Session</h3>
             <Lbl>Date</Lbl>
             <input type="date" value={logDate} onChange={e=>setLogDate(e.target.value)} className="field"
-              style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block",marginBottom:22}}/>
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block",marginBottom:dupeDateMsg?10:22}}/>
+            {dupeDateMsg&&(
+              <div style={{marginBottom:14,padding:"8px 12px",background:`${PHASES.menstruation.color}15`,border:`1px solid ${PHASES.menstruation.color}35`,borderRadius:T.r.md,fontSize:13,color:PHASES.menstruation.color}}>
+                Already logged for this date
+              </div>
+            )}
             <div style={{display:"flex",gap:10}}>
               <Btn variant="ghost" onClick={()=>setShowLogModal(false)} style={{flex:1,padding:14}}>Cancel</Btn>
               <button className="pressable" onClick={logIntimacy} style={{flex:2,padding:14,background:T.accent,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${T.accent}55`}}>Save Session 💕</button>
@@ -1253,7 +1264,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
   const [editingImport, setEditingImport] = useState(false);
 
   const ok = form.name.trim().length > 0;
-  const inputStyle={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block"};
+  const inputStyle={};  // uses .field CSS class — no inline override needed
 
   function tryDecode(val) {
     setCodeStr(val);
@@ -1274,7 +1285,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
   }
 
   return (
-    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI}}>
+    <div style={{minHeight:"100%",background:T.page,color:T.text,fontFamily:T.fontUI}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"18px 16px 100px"}}>
         <Btn variant="ghost" onClick={onBack} style={{marginBottom:24,padding:"8px 16px",fontSize:13}}>← Back</Btn>
 
@@ -1286,7 +1297,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
         {/* Mode toggle — DD pill tab style */}
         <div style={{display:"flex",background:"rgba(0,0,0,0.25)",borderRadius:T.r.pill,padding:4,marginBottom:20,border:`1px solid ${T.border}`,gap:3}}>
           {[{id:"manual",label:"✏️ Manual"},{id:"import",label:"📥 Import Code"}].map(m=>(
-            <button key={m.id} onClick={()=>setMode(m.id)} className="tab-btn" style={{
+            <button key={m.id} onClick={()=>setMode(m.id)} className="tab pressable" style={{
               flex:1,border:"none",borderRadius:T.r.pill,padding:"10px 8px",
               background:mode===m.id?T.accent:"transparent",
               color:mode===m.id?"#fff":T.textMute,
@@ -1498,7 +1509,7 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
   const sessCt   = active.reduce((a,p)=>a+(p.intimacyLog||[]).length,0);
 
   return (
-    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
+    <div style={{minHeight:"100%",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"0 16px 120px"}}>
 
         {/* ── HEADER — name left, kebab right ── */}
@@ -1544,18 +1555,51 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
           </button>
         )}
 
-        {/* ── EMPTY STATE ── */}
+        {/* ── EMPTY STATE — first-time onboarding ── */}
         {visible.length===0?(
-          <div className="fade-up" style={{textAlign:"center",padding:"72px 20px"}}>
-            <div style={{fontSize:58,marginBottom:16}}>🌙</div>
-            <h2 style={{fontFamily:T.fontDisp,fontSize:24,marginBottom:10}}>{showHidden?"No hidden profiles":"No profiles yet"}</h2>
-            <p style={{color:T.textSub,marginBottom:32,lineHeight:1.65,fontSize:14}}>
-              {showHidden?"All profiles are visible.":"Add your first profile to start tracking."}
-            </p>
-            {!showHidden&&(
-              <button className="pressable" onClick={onAdd} style={{background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,padding:"13px 32px",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 18px rgba(0,0,0,0.55)"}}>
-                Add First Profile →
-              </button>
+          <div className="fade-up">
+            {!showHidden?(
+              <div>
+                {/* Welcome hero */}
+                <div style={{textAlign:"center",padding:"40px 0 32px"}}>
+                  <div style={{fontSize:52,marginBottom:16}}>🌙</div>
+                  <h2 style={{fontFamily:T.fontDisp,fontSize:26,fontWeight:400,marginBottom:10,color:T.text}}>Welcome to Cyclr</h2>
+                  <p style={{color:T.textSub,fontSize:15,lineHeight:1.65,maxWidth:320,margin:"0 auto"}}>
+                    Track your partner's cycle, understand her phases, and get AI-powered insights.
+                  </p>
+                </div>
+                {/* Feature cards */}
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+                  {[
+                    {icon:"📊",title:"Phase tracking",desc:"See exactly where she is in her cycle every day — period, follicular, ovulation, or luteal."},
+                    {icon:"🤖",title:"AI insights",desc:"Get frank, personalised advice for each phase using your Anthropic API key."},
+                    {icon:"📥",title:"Import from any app",desc:"Paste data from Flo, Clue, or Natural Cycles — or share a CYC- code between devices."},
+                  ].map(f=>(
+                    <div key={f.title} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                      <div style={{fontSize:22,flexShrink:0,marginTop:1}}>{f.icon}</div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:3}}>{f.title}</div>
+                        <div style={{fontSize:13,color:T.textSub,lineHeight:1.55}}>{f.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* CTAs */}
+                <div style={{display:"flex",gap:10}}>
+                  <button className="pressable" onClick={onImport} style={{flex:1,padding:"13px 10px",background:T.surface,color:T.textSub,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:14,fontWeight:600,cursor:"pointer"}}>
+                    📥 Import code
+                  </button>
+                  <button className="pressable" onClick={onAdd} style={{flex:2,padding:"13px 10px",background:T.accent,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 20px ${T.accent}44`}}>
+                    Add first profile →
+                  </button>
+                </div>
+              </div>
+            ):(
+              <div style={{textAlign:"center",padding:"72px 20px"}}>
+                <div style={{fontSize:40,marginBottom:12}}>🙈</div>
+                <h2 style={{fontFamily:T.fontDisp,fontSize:22,fontWeight:400,marginBottom:8}}>No hidden profiles</h2>
+                <p style={{color:T.textSub,fontSize:14}}>All profiles are currently visible.</p>
+              </div>
             )}
           </div>
         ):(
@@ -1654,13 +1698,11 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
                action:()=>{setShowHidden(h=>!h);setShowMenu(false);},
                hidden:hiddenCt===0},
             ].filter(i=>!i.hidden).map(item=>(
-              <button key={item.label} onClick={item.action} style={{
+              <button key={item.label} onClick={item.action} className="pressable" style={{
                 display:"flex",alignItems:"center",gap:16,width:"100%",
                 padding:"14px 22px",background:"none",border:"none",
                 color:T.text,fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",
-              }}
-              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
-              onMouseLeave={e=>e.currentTarget.style.background="none"}>
+              }}>
                 <span style={{fontSize:20,width:28,textAlign:"center"}}>{item.icon}</span>{item.label}
               </button>
             ))}
@@ -1688,11 +1730,11 @@ function Login({ onLogin }) {
   const ok=username.trim().length>0;
 
   return (
-    <div style={{minHeight:"100vh",background:T.page,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fontUI,position:"relative",padding:20}}>
+    <div style={{minHeight:"100%",background:T.page,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fontUI,position:"relative",padding:20}}>
       {/* ── LOGIN CARD — DD centered modal on grey bg ── */}
       <div className="scale-in" style={{position:"relative",zIndex:2,width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{fontSize:54,marginBottom:14,animation:"floatBlob 6s ease-in-out infinite"}}>🌙</div>
+          <div style={{fontSize:54,marginBottom:14}}>🌙</div>
           <h1 style={{fontFamily:T.fontDisp,fontSize:36,fontWeight:400,lineHeight:1.15,color:T.text,margin:"0 0 10px"}}>
             Find Your<br/>Best Insight.
           </h1>
@@ -1712,7 +1754,7 @@ function Login({ onLogin }) {
           </div>
           {/* Big black CTA — "Choose Deck & Start Playing" equivalent */}
           <button className="pressable" onClick={()=>ok&&onLogin(username.trim())} disabled={!ok}
-            style={{width:"100%",padding:"15px",background:ok?"#111":"rgba(255,255,255,0.08)",color:ok?T.text:"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,cursor:ok?"pointer":"not-allowed",boxShadow:ok?"0 4px 20px rgba(0,0,0,0.6)":"none",letterSpacing:"0.02em",transition:"all 0.15s"}}>
+            style={{width:"100%",padding:"15px",background:ok?T.accent:"rgba(255,255,255,0.06)",color:ok?"#fff":"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:700,cursor:ok?"pointer":"not-allowed",boxShadow:ok?`0 4px 20px ${T.accent}55`:"none",letterSpacing:"0.02em",transition:"all 0.15s"}}>
             Get Started →
           </button>
           <p style={{textAlign:"center",color:T.textMute,fontSize:11,marginTop:14,lineHeight:1.5}}>All data stored locally · no account needed</p>
