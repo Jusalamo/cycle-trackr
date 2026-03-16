@@ -2,66 +2,84 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 
 // ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
-// Font: Nunito 900 (Deeper-Decks heavy rounded sans)
-// Page bg: #5a5a5a (mid grey like DD)
-// Surfaces: #2a2a2a / #333 / #3a3a3a (DD dark card family)
-// Buttons: black primary, ghost outline, red danger — DD language
-// All original layout, features, tabs preserved exactly
 
 const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #5a5a5a; font-family: 'Nunito', sans-serif; -webkit-font-smoothing: antialiased; }
-  input, textarea, button, select { font-family: inherit; }
-  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
-  ::-webkit-scrollbar { width: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
 
-  @keyframes fadeIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes scaleIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Scroll fix: prevent iOS rubber-band bounce ── */
+  html, body {
+    height: 100%; overflow: hidden;
+    background: #111;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  #root {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+  input, textarea, button, select { font-family: inherit; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+
+  /* ── Custom scrollbar ── */
+  #root::-webkit-scrollbar { width: 4px; }
+  #root::-webkit-scrollbar-track { background: transparent; }
+  #root::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  /* ── Keyframes ── */
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes scaleIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
   @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
   @keyframes spin    { to { transform:rotate(360deg); } }
-  @keyframes floatBlob { 0%,100% { transform:translate(0,0); } 50% { transform:translate(6px,-10px); } }
-  @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+  @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+  @keyframes glow    { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
 
-  .fade-in   { animation: fadeIn 0.3s ease both; }
-  .fade-in-1 { animation: fadeIn 0.3s 0.05s ease both; }
-  .fade-in-2 { animation: fadeIn 0.3s 0.10s ease both; }
-  .fade-in-3 { animation: fadeIn 0.3s 0.15s ease both; }
-  .scale-in  { animation: scaleIn 0.25s cubic-bezier(0.34,1.4,0.64,1) both; }
-  .sheet-in  { animation: slideUp 0.28s cubic-bezier(0.4,0,0.2,1) both; }
+  .fade-up   { animation: fadeUp 0.28s ease both; }
+  .fade-up-1 { animation: fadeUp 0.28s 0.05s ease both; }
+  .fade-up-2 { animation: fadeUp 0.28s 0.10s ease both; }
+  .fade-up-3 { animation: fadeUp 0.28s 0.15s ease both; }
+  .scale-in  { animation: scaleIn 0.22s cubic-bezier(0.34,1.3,0.64,1) both; }
+  .sheet-in  { animation: slideUp 0.26s cubic-bezier(0.4,0,0.2,1) both; }
 
-  /* Deeper-Decks button press feel */
-  .dd-btn { transition: filter 0.12s ease, transform 0.1s ease; cursor: pointer; }
-  .dd-btn:hover:not(:disabled) { filter: brightness(1.12); }
-  .dd-btn:active:not(:disabled) { transform: scale(0.97); }
+  /* ── Interactive states ── */
+  .pressable { transition: opacity 0.1s, transform 0.1s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pressable:active { opacity: 0.75; transform: scale(0.97); }
 
-  /* Card hover lift */
-  .dd-card-hover { transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; }
-  .dd-card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,0,0,0.55) !important; }
+  .card-lift { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+  .card-lift:hover { transform: translateY(-1px); }
 
-  /* Row hover */
-  .dd-row-hover { transition: background 0.14s ease; }
-  .dd-row-hover:hover { background: rgba(255,255,255,0.05) !important; }
+  /* ── Inputs ── */
+  .field {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 13px 15px;
+    color: #fff;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    display: block;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:focus {
+    border-color: rgba(139,111,232,0.6);
+    box-shadow: 0 0 0 3px rgba(139,111,232,0.12);
+  }
+  .field::placeholder { color: rgba(255,255,255,0.2); }
 
-  /* Symptom tag toggle */
-  .sym-tag { transition: background 0.12s, border-color 0.12s, color 0.12s; cursor: pointer; }
-  .sym-tag:hover { filter: brightness(1.1); }
+  /* ── Symptom tags ── */
+  .sym { transition: background 0.12s, border-color 0.12s, color 0.12s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
-  /* Tab button */
-  .tab-btn { transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease; }
+  /* ── Tab ── */
+  .tab { transition: background 0.15s, color 0.15s; }
 
-  /* Input focus */
-  .dd-input { transition: border-color 0.14s, box-shadow 0.14s; }
-  .dd-input:focus { outline: none; border-color: rgba(255,255,255,0.35) !important; box-shadow: 0 0 0 3px rgba(255,255,255,0.06) !important; }
-  .dd-input::placeholder { color: rgba(255,255,255,0.25); }
-
-  /* Toggle */
-  .tog-track { transition: background 0.18s ease; }
-  .tog-thumb  { transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1); }
-
-  /* Range slider — hide native thumb, we render our own */
+  /* ── Range (hide native) ── */
   input[type=range] { -webkit-appearance:none; appearance:none; background:transparent; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; opacity:0; }
   input[type=range]::-moz-range-thumb { width:22px; height:22px; opacity:0; border:none; }
@@ -78,48 +96,60 @@ function GlobalStyles() {
   return null;
 }
 
-// ─── DESIGN TOKENS (Deeper-Decks palette) ────────────────────────────────────
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+// Colour system: 60-30-10 rule
+//   60% Neutral  — page bg, surfaces, borders (near-black family)
+//   30% Mid      — card surfaces, secondary text
+//   10% Accent   — brand purple #8B6FE8, used sparingly for CTAs and active states
+//
+// Semantic colours only for phase data (health meaning, not decoration)
+// Phase colours are MUTED — they inform, not shout
 
 const T = {
-  // Backgrounds
-  pageBg:   "#5a5a5a",      // mid-grey page (like DD)
-  surface:  "#252525",      // main dark card surface
-  surface2: "#2f2f2f",      // slightly lighter surface
-  row:      "#383838",      // list row background
-  rowAlt:   "#323232",
+  // ── 60% neutrals ──
+  page:     "#111111",    // body background — deep, not grey
+  surface:  "#1c1c1e",   // iOS-dark-like card surface
+  surface2: "#242426",   // elevated surface
+  surface3: "#2c2c2e",   // inputs, rows
 
-  // Borders
-  border:   "rgba(255,255,255,0.08)",
-  borderMd: "rgba(255,255,255,0.13)",
+  // ── Borders (barely visible) ──
+  border:   "rgba(255,255,255,0.07)",
+  borderMd: "rgba(255,255,255,0.12)",
 
-  // Text
-  text:     "#ffffff",
-  textSoft: "rgba(255,255,255,0.6)",
-  textMute: "rgba(255,255,255,0.3)",
+  // ── 30% text hierarchy ──  (3 weights, not 5 random opacities)
+  text:     "#f2f2f7",   // primary  — iOS-style near-white
+  textSub:  "#8e8e93",   // secondary — iOS grey
+  textMute: "#48484a",   // tertiary — very dim
 
-  // DD accent colors
-  green:    "#4caf7a",   // safe / positive
-  red:      "#e05555",   // danger / period
-  lavender: "#7c5cbf",   // primary accent
+  // ── 10% brand accent ──
+  accent:   "#8B6FE8",   // single brand purple
+  accentDim:"rgba(139,111,232,0.12)",
 
-  // Typography
-  fontBody:  "'Nunito', sans-serif",
-  fontSerif: "'Playfair Display', serif",
+  // ── Semantic (meaning-only, used for phase data) ──
+  green:  "#30d158",   // iOS green — safe
+  red:    "#ff453a",   // iOS red   — danger / delete
 
-  // Radius
-  r: { sm:8, md:12, lg:16, xl:20, pill:999 },
+  // ── Typography ──
+  fontUI:   "'Inter', system-ui, sans-serif",
+  fontDisp: "'DM Serif Display', Georgia, serif",
 
-  // Shadows
-  cardShadow: "0 6px 28px rgba(0,0,0,0.5)",
-  deepShadow: "0 16px 48px rgba(0,0,0,0.65)",
+  // ── Spacing / radius ──
+  r: { sm:8, md:10, lg:14, xl:18, pill:999 },
+
+  // ── Elevation ──
+  shadow:  "0 2px 12px rgba(0,0,0,0.4)",
+  shadowLg:"0 8px 32px rgba(0,0,0,0.6)",
 };
 
-// Phase definitions (same structure, DD-adjacent colours)
+// ── Type scale (7 stops, not 14) ──
+// caption: 11 / body-sm: 13 / body: 15 / body-lg: 17 / title-sm: 20 / title: 24 / display: 32
+
+// Phase semantic colours — MUTED versions that inform without noise
 const PHASES = {
-  menstruation: { key:"menstruation", label:"Menstruation", short:"Period",     color:"#e84393", dim:"rgba(232,67,147,0.14)", bg:"#2a0f1c", emoji:"🔴", days:[1,5]   },
-  follicular:   { key:"follicular",   label:"Follicular",   short:"Follicular", color:"#f5a623", dim:"rgba(245,166,35,0.14)",  bg:"#2a1e08", emoji:"🌱", days:[6,13]  },
-  ovulation:    { key:"ovulation",    label:"Ovulation",    short:"Ovulation",  color:"#4caf7a", dim:"rgba(76,175,122,0.14)",  bg:"#0b2218", emoji:"⚡", days:[14,16] },
-  luteal:       { key:"luteal",       label:"Luteal",       short:"Luteal",     color:"#9b59b6", dim:"rgba(155,89,182,0.14)",  bg:"#180e28", emoji:"🌙", days:[17,28] },
+  menstruation: { key:"menstruation", label:"Menstruation", short:"Period",     color:"#e8547a", dim:"rgba(232,84,122,0.12)", bg:"rgba(232,84,122,0.06)",  emoji:"🔴", days:[1,5]   },
+  follicular:   { key:"follicular",   label:"Follicular",   short:"Follicular", color:"#d4831a", dim:"rgba(212,131,26,0.12)",  bg:"rgba(212,131,26,0.06)",  emoji:"🌱", days:[6,13]  },
+  ovulation:    { key:"ovulation",    label:"Ovulation",    short:"Ovulation",  color:"#2fb57a", dim:"rgba(47,181,122,0.12)",  bg:"rgba(47,181,122,0.06)",  emoji:"⚡", days:[14,16] },
+  luteal:       { key:"luteal",       label:"Luteal",       short:"Luteal",     color:"#7c5cbf", dim:"rgba(124,92,191,0.12)",  bg:"rgba(124,92,191,0.06)",  emoji:"🌙", days:[17,28] },
 };
 
 const TIPS = {
@@ -135,8 +165,7 @@ const SYMPTOMS = [
   "Anxiety","Clear discharge","PMS","Acne","Insomnia","Food cravings",
 ];
 
-const AVATARS      = ["🌸","💜","🌙","🦋","🌺","✨","💎","🌹","🔮","🌊","🍒","🌷"];
-const CARD_ACCENTS = ["#9b59b6","#f5a623","#e84393","#4caf7a","#3b9dd4","#e07b35"];
+const AVATARS = ["🌸","💜","🌙","🦋","🌺","✨","💎","🌹","🔮","🌊","🍒","🌷"];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -224,47 +253,42 @@ function decodePartnerCode(code) {
 
 // ─── SHARED PRIMITIVES ────────────────────────────────────────────────────────
 
-// Deeper-Decks style button: solid dark primary, or coloured variant
-function DDBtn({ children, onClick, disabled, variant="primary", color, style={}, className="" }) {
-  const base = {
-    border:"none", borderRadius: T.r.lg, fontWeight:800, fontSize:14,
-    cursor: disabled ? "not-allowed" : "pointer",
-    display:"inline-flex", alignItems:"center", justifyContent:"center", gap:7,
-    padding:"11px 20px", fontFamily: T.fontBody, opacity: disabled ? 0.4 : 1,
-    transition:"filter 0.12s, transform 0.1s",
-  };
-  const c = color || T.lavender;
-  const variants = {
-    primary:   { background: c, color: "#fff", boxShadow: `0 4px 16px ${c}55` },
-    black:     { background: "#111", color:"#fff", boxShadow:"0 4px 14px rgba(0,0,0,0.5)" },
-    ghost:     { background:"rgba(255,255,255,0.07)", color: T.textSoft, border:`1px solid ${T.border}` },
-    danger:    { background:"rgba(224,85,85,0.18)", color:"#ff7070", border:`1px solid rgba(224,85,85,0.35)` },
-    fullBlack: { background:"#111", color:"#fff", width:"100%", boxShadow:"0 4px 18px rgba(0,0,0,0.6)" },
+// Primary action button — brand accent or custom colour
+function Btn({ children, onClick, disabled, variant="accent", color, style={} }) {
+  const c = color || T.accent;
+  const map = {
+    accent:  { background:c, color:"#fff", border:"none", boxShadow:`0 4px 20px ${c}44` },
+    black:   { background:"#0a0a0a", color:T.text, border:"none", boxShadow:"0 4px 14px rgba(0,0,0,0.5)" },
+    ghost:   { background:"rgba(255,255,255,0.05)", color:T.textSub, border:`1px solid ${T.border}` },
+    danger:  { background:"rgba(255,69,58,0.1)", color:T.red, border:`1px solid rgba(255,69,58,0.25)` },
   };
   return (
-    <button className={`dd-btn ${className}`} onClick={disabled?undefined:onClick} disabled={disabled}
-      style={{...base, ...variants[variant], ...style}}>
-      {children}
-    </button>
+    <button className="pressable" onClick={disabled?undefined:onClick} disabled={disabled} style={{
+      border:"none", borderRadius:T.r.lg, fontWeight:700, fontSize:15,
+      fontFamily:T.fontUI, cursor:disabled?"not-allowed":"pointer",
+      display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8,
+      padding:"12px 20px", opacity:disabled?0.35:1,
+      ...map[variant], ...style,
+    }}>{children}</button>
   );
 }
 
-// Label — DD small caps style
+// Section label — restrained caps
 function Lbl({ children, style={} }) {
-  return <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.6, color:T.textMute, textTransform:"uppercase", marginBottom:8, ...style }}>{children}</div>;
+  return <div style={{ fontSize:11, fontWeight:600, letterSpacing:1.4, color:T.textMute, textTransform:"uppercase", marginBottom:8, fontFamily:T.fontUI, ...style }}>{children}</div>;
 }
 
 // Divider
 function Hr({ style={} }) {
-  return <div style={{ height:1, background:T.border, margin:"14px 0", ...style }}/>;
+  return <div style={{ height:1, background:T.border, margin:"16px 0", ...style }}/>;
 }
 
-// Toggle switch (green when on, exactly like DD settings)
+// Toggle switch
 function Toggle({ on, onChange }) {
   return (
-    <div onClick={()=>onChange(!on)} style={{cursor:"pointer", flexShrink:0}}>
-      <div className="tog-track" style={{ width:48, height:26, borderRadius:13, background:on?"#4caf7a":"rgba(255,255,255,0.15)", position:"relative" }}>
-        <div className="tog-thumb" style={{ width:20, height:20, borderRadius:"50%", background:"white", position:"absolute", top:3, transform: on?"translateX(24px)":"translateX(3px)", boxShadow:"0 2px 5px rgba(0,0,0,0.35)" }}/>
+    <div onClick={()=>onChange(!on)} className="pressable" style={{flexShrink:0}}>
+      <div style={{ width:48,height:28,borderRadius:14, background:on?T.green:"rgba(255,255,255,0.12)", position:"relative", transition:"background 0.2s" }}>
+        <div style={{ width:22,height:22,borderRadius:"50%",background:"white",position:"absolute",top:3, transform:on?"translateX(23px)":"translateX(3px)", transition:"transform 0.2s cubic-bezier(0.34,1.3,0.64,1)", boxShadow:"0 2px 5px rgba(0,0,0,0.3)" }}/>
       </div>
     </div>
   );
@@ -272,33 +296,23 @@ function Toggle({ on, onChange }) {
 
 // Spinner
 function Spin({ color="#fff" }) {
-  return <span style={{ width:13, height:13, border:`2px solid ${color}33`, borderTopColor:color, borderRadius:"50%", display:"inline-block", animation:"spin 0.7s linear infinite" }}/>;
+  return <span style={{ width:13,height:13,border:`2px solid ${color}33`,borderTopColor:color,borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>;
 }
 
-// Background floating blobs (decorative, phase-tinted)
-function BgDecor({ phase }) {
-  const c = PHASES[phase||"luteal"].color;
-  return (
-    <div style={{ position:"fixed", inset:0, overflow:"hidden", pointerEvents:"none", zIndex:0 }}>
-      <div style={{ position:"absolute", top:-100, right:-80, width:360, height:360, borderRadius:"60% 40% 55% 45%", background:c+"12", animation:"floatBlob 14s ease-in-out infinite" }}/>
-      <div style={{ position:"absolute", bottom:60, left:-70, width:260, height:260, borderRadius:"50%", background:T.lavender+"0a", animation:"floatBlob 19s ease-in-out infinite reverse" }}/>
-    </div>
-  );
-}
+// BgDecor removed — adds visual noise, not signal
 
 // ─── CYCLE RING ───────────────────────────────────────────────────────────────
 
-function CycleRing({ day, cycleLength, profile=null, size=200, glowing=false }) {
+function CycleRing({ day, cycleLength, profile=null, size=200 }) {
   const cx=size/2, cy=size/2, r=size*0.35, sw=size*0.09, circ=2*Math.PI*r;
   const phase = getPhaseFromDay(day, profile);
-  // Build segments from actual profile bounds
   const b = profile ? getPhaseBounds(profile) : {
     menstruation:[1,5], follicular:[6,13], ovulation:[14,16], luteal:[17,cycleLength]
   };
   const segs = [
-    {key:"menstruation", start:b.menstruation[0]-1, end:b.menstruation[1], color:"#e84393"},
-    {key:"follicular",   start:b.follicular[0]-1,   end:b.follicular[1],   color:"#f5a623"},
-    {key:"ovulation",    start:b.ovulation[0]-1,    end:b.ovulation[1],    color:"#4caf7a"},
+    {key:"menstruation", start:b.menstruation[0]-1, end:b.menstruation[1], color:PHASES.menstruation.color},
+    {key:"follicular",   start:b.follicular[0]-1,   end:b.follicular[1],   color:PHASES.follicular.color},
+    {key:"ovulation",    start:b.ovulation[0]-1,    end:b.ovulation[1],    color:PHASES.ovulation.color},
     {key:"luteal",       start:b.luteal[0]-1,        end:b.luteal[1],       color:"#9b59b6"},
   ];
   function sp(s,e){const sa=(s/cycleLength)*2*Math.PI-Math.PI/2; const dl=Math.max(0,((e-s)/cycleLength)*circ-4); const off=-(sa/(2*Math.PI))*circ; return{dl,gap:circ-dl,off};}
@@ -316,9 +330,9 @@ function CycleRing({ day, cycleLength, profile=null, size=200, glowing=false }) 
       })}
       <circle cx={dx} cy={dy} r={size*0.055} fill="white"/>
       <circle cx={dx} cy={dy} r={size*0.032} fill={pc}/>
-      <text x={cx} y={cy-8}  textAnchor="middle" fill="white"          fontSize={size*0.15} fontWeight={900} fontFamily={T.fontBody}>{day}</text>
-      <text x={cx} y={cy+10} textAnchor="middle" fill={T.textMute}     fontSize={size*0.07} fontFamily={T.fontBody}>of {cycleLength}</text>
-      <text x={cx} y={cy+26} textAnchor="middle" fill={pc}             fontSize={size*0.074} fontWeight={800} fontFamily={T.fontBody}>{PHASES[phase].short}</text>
+      <text x={cx} y={cy-8}  textAnchor="middle" fill="white"       fontSize={size*0.15} fontWeight={700} fontFamily={T.fontUI}>{day}</text>
+      <text x={cx} y={cy+10} textAnchor="middle" fill={T.textMute}  fontSize={size*0.07} fontFamily={T.fontUI}>of {cycleLength}</text>
+      <text x={cx} y={cy+26} textAnchor="middle" fill={pc}          fontSize={size*0.074} fontWeight={700} fontFamily={T.fontUI}>{PHASES[phase].short}</text>
     </svg>
   );
 }
@@ -358,7 +372,7 @@ function MonthCalendar({ profile, monthOffset=0 }) {
               background:isToday?col:col+"1a", border:`1px solid ${isToday?col:col+"30"}`,
               display:"flex",alignItems:"center",justifyContent:"center",
               boxShadow:isToday?`0 0 10px ${col}55`:"none"}}>
-              <span style={{fontSize:10,color:isToday?"#111":T.textSoft,fontWeight:isToday?800:500}}>{d}</span>
+              <span style={{fontSize:10,color:isToday?"#111":T.textSub,fontWeight:isToday?800:500}}>{d}</span>
               {hasI&&<span style={{position:"absolute",top:1,right:1,fontSize:7}}>💕</span>}
             </div>
           );
@@ -406,12 +420,12 @@ function AIInsight({ profile }) {
           <div style={{width:26,height:26,borderRadius:7,background:PD.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✦</div>
           <Lbl style={{marginBottom:0,color:PD.color}}>AI Insight</Lbl>
         </div>
-        <DDBtn onClick={generate} disabled={loading} color={PD.color} style={{padding:"6px 16px",fontSize:12}}>
+        <Btn onClick={generate} disabled={loading} color={PD.color} style={{padding:"6px 16px",fontSize:12}}>
           {loading?<><Spin color="#fff"/>Thinking…</>:"Generate"}
-        </DDBtn>
+        </Btn>
       </div>
       {text
-        ?<p style={{fontSize:14,color:err?"#ff7070":T.textSoft,lineHeight:1.75,margin:0}}>{text}</p>
+        ?<p style={{fontSize:14,color:err?"#ff7070":T.textSub,lineHeight:1.75,margin:0}}>{text}</p>
         :<p style={{fontSize:13,color:T.textMute,margin:0,fontStyle:"italic",lineHeight:1.6}}>Generate a personalized AI insight for this cycle phase.</p>
       }
     </div>
@@ -426,7 +440,7 @@ function SliderRow({ label, emoji, color, value, min, max, onChange, note }) {
     <div style={{marginBottom:22}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
         <span style={{fontSize:14,fontWeight:800,color}}>{emoji} {label}</span>
-        <span style={{fontSize:22,fontWeight:900,color,fontFamily:T.fontSerif,lineHeight:1}}>
+        <span style={{fontSize:22,fontWeight:800,color,fontFamily:T.fontDisp,lineHeight:1}}>
           {value}<span style={{fontSize:13,fontWeight:600,color:T.textMute}}> days</span>
         </span>
       </div>
@@ -617,7 +631,7 @@ function PhaseDividerBar({ profile, onUpdate }) {
             }}>
               <div style={{display:"flex",alignItems:"center",gap:9}}>
                 <div style={{width:10,height:10,borderRadius:3,background:seg.color,flexShrink:0}}/>
-                <span style={{fontSize:14,fontWeight:700,color:isCur?seg.color:T.textSoft}}>
+                <span style={{fontSize:14,fontWeight:700,color:isCur?seg.color:T.textSub}}>
                   {PHASES[seg.key].emoji} {seg.label}
                 </span>
                 {isCur && <span style={{fontSize:11,fontWeight:800,color:seg.color,background:seg.color+"20",borderRadius:T.r.pill,padding:"2px 9px"}}>NOW</span>}
@@ -654,40 +668,40 @@ function ShareCodeModal({ profile, onClose }) {
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
-      <div className="scale-in" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,width:"100%",maxWidth:440,boxShadow:T.deepShadow}}>
+      <div className="scale-in" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,width:"100%",maxWidth:440,boxShadow:T.shadowLg}}>
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
           <div>
-            <div style={{fontSize:22,fontWeight:900,color:T.text,marginBottom:4}}>📤 Partner Code</div>
+            <div style={{fontSize:22,fontWeight:800,color:T.text,marginBottom:4}}>📤 Partner Code</div>
             <div style={{fontSize:13,color:T.textMute,lineHeight:1.5}}>Share with any period tracking app or send directly. The code contains all of {profile.name}'s cycle data.</div>
           </div>
-          <button onClick={onClose} className="dd-btn" style={{background:"none",border:"none",color:T.textMute,fontSize:22,cursor:"pointer",padding:"0 0 0 12px",lineHeight:1,flexShrink:0}}>✕</button>
+          <button onClick={onClose} className="pressable" style={{background:"none",border:"none",color:T.textMute,fontSize:22,cursor:"pointer",padding:"0 0 0 12px",lineHeight:1,flexShrink:0}}>✕</button>
         </div>
 
         {/* Code box */}
         <div style={{background:T.surface2,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:16,marginBottom:16,position:"relative"}}>
-          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender,marginBottom:10}}>PARTNER CODE</div>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.accent,marginBottom:10}}>PARTNER CODE</div>
           <div style={{
-            fontSize:12, fontFamily:"monospace", color:T.textSoft,
+            fontSize:12, fontFamily:"monospace", color:T.textSub,
             wordBreak:"break-all", lineHeight:1.7, userSelect:"all",
             maxHeight:110, overflowY:"auto",
           }}>{code}</div>
         </div>
 
         {/* What's included */}
-        <div style={{background:"rgba(124,92,191,0.08)",border:`1px solid ${T.lavender}22`,borderRadius:T.r.md,padding:"12px 14px",marginBottom:20}}>
-          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender,marginBottom:8}}>WHAT'S INCLUDED</div>
+        <div style={{background:"rgba(124,92,191,0.08)",border:`1px solid ${T.accent}22`,borderRadius:T.r.md,padding:"12px 14px",marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.accent,marginBottom:8}}>WHAT'S INCLUDED</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {["Name & avatar","Last period date","Cycle length","Phase boundaries","Symptoms","Intimacy log","Notes"].map(item => (
-              <span key={item} style={{fontSize:11,color:T.textSoft,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"3px 10px"}}>✓ {item}</span>
+              <span key={item} style={{fontSize:11,color:T.textSub,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"3px 10px"}}>✓ {item}</span>
             ))}
           </div>
         </div>
 
         {/* Actions */}
         <div style={{display:"flex",gap:10}}>
-          <DDBtn variant="ghost" onClick={onClose} style={{flex:1,padding:13}}>Close</DDBtn>
-          <button className="dd-btn" onClick={copyCode} style={{
+          <Btn variant="ghost" onClick={onClose} style={{flex:1,padding:13}}>Close</Btn>
+          <button className="pressable" onClick={copyCode} style={{
             flex:2,padding:13,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",
             background:copied?"#4caf7a":"#111",color:"#fff",
             boxShadow:copied?"0 4px 16px #4caf7a55":"0 4px 16px rgba(0,0,0,0.5)",
@@ -731,29 +745,28 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
   const tabs=[{id:"overview",label:"Overview"},{id:"calendar",label:"Calendar"},{id:"insights",label:"Insights"},{id:"edit",label:"Edit"}];
 
   return (
-    <div style={{minHeight:"100vh",background:T.pageBg,color:T.text,fontFamily:T.fontBody,position:"relative"}}>
-      <BgDecor phase={phase}/>
+    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"0 16px 120px"}}>
 
         {/* ── TOP BAR — back arrow left, kebab right ── */}
-        <div className="fade-in" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
-          <button onClick={onBack} className="dd-btn" style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.07)",border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:"8px 16px",color:T.textSoft,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+        <div className="fade-up" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+          <button onClick={onBack} className="pressable" style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.07)",border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:"8px 16px",color:T.textSub,fontSize:13,fontWeight:700,cursor:"pointer"}}>
             <span style={{fontSize:16,lineHeight:1}}>←</span> Back
           </button>
           {/* Kebab ⋯ */}
-          <button onClick={()=>setShowKebab(true)} className="dd-btn" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,0.07)",border:`1px solid ${T.border}`,color:T.textSoft,fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",letterSpacing:1}}>
+          <button onClick={()=>setShowKebab(true)} className="pressable" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,0.07)",border:`1px solid ${T.border}`,color:T.textSub,fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",letterSpacing:1}}>
             ⋯
           </button>
         </div>
 
         {/* ── HERO CARD ── */}
-        <div className="fade-in" style={{position:"relative",marginBottom:16}}>
+        <div className="fade-up" style={{position:"relative",marginBottom:16}}>
           <div style={{position:"absolute",top:-16,right:-16,width:130,height:130,borderRadius:"60% 40% 55% 45%",background:PD.color+"14",pointerEvents:"none",zIndex:-1}}/>
-          <div style={{background:T.surface,border:`1px solid ${PD.color}28`,borderRadius:T.r.xl,padding:22,boxShadow:T.cardShadow}}>
+          <div style={{background:T.surface,border:`1px solid ${PD.color}28`,borderRadius:T.r.xl,padding:22,boxShadow:T.shadow}}>
             <div style={{display:"flex",gap:14,alignItems:"center",marginBottom:18}}>
               <div style={{width:68,height:68,borderRadius:20,background:`linear-gradient(135deg,${PD.color}33,${PD.color}11)`,border:`2px solid ${PD.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>{profile.avatar}</div>
               <div style={{flex:1,minWidth:0}}>
-                <h2 style={{fontFamily:T.fontSerif,fontSize:24,fontWeight:800,margin:"0 0 6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</h2>
+                <h2 style={{fontFamily:T.fontDisp,fontSize:22,fontWeight:700,margin:"0 0 5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</h2>
                 <div style={{display:"inline-flex",alignItems:"center",gap:6,background:PD.color+"1a",borderRadius:T.r.pill,padding:"4px 12px",border:`1px solid ${PD.color}30`}}>
                   <span style={{fontSize:12}}>{PD.emoji}</span>
                   <span style={{fontSize:13,color:PD.color,fontWeight:700}}>{PD.label} · Day {day} of {profile.cycleLength}</span>
@@ -766,21 +779,21 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               <span style={{fontSize:18,flexShrink:0,lineHeight:1.4}}>{tips.safe?"✅":"⚠️"}</span>
               <div>
                 <div style={{fontSize:11,fontWeight:800,letterSpacing:1.8,color:tips.safe?T.green:PD.color,marginBottom:4}}>{tips.risk}</div>
-                <div style={{fontSize:14,color:T.textSoft,lineHeight:1.65}}>{tips.note}</div>
+                <div style={{fontSize:14,color:T.textSub,lineHeight:1.65}}>{tips.note}</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── TABS ── */}
-        <div className="fade-in-1" style={{display:"flex",background:"rgba(0,0,0,0.25)",borderRadius:T.r.pill,padding:4,marginBottom:20,border:`1px solid ${T.border}`,gap:3}}>
+        <div className="fade-up-1" style={{display:"flex",background:"rgba(0,0,0,0.25)",borderRadius:T.r.pill,padding:4,marginBottom:20,border:`1px solid ${T.border}`,gap:3}}>
           {tabs.map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} className="tab-btn" style={{
               flex:1,border:"none",borderRadius:T.r.pill,padding:"9px 4px",
               background:tab===t.id?PD.color:"transparent",
               color:tab===t.id?"#111":T.textMute,
               fontSize:13,fontWeight:tab===t.id?800:600,cursor:"pointer",
-              fontFamily:T.fontBody,
+              fontFamily:T.fontUI,
               boxShadow:tab===t.id?`0 2px 10px ${PD.color}45`:"none",
             }}>{t.label}</button>
           ))}
@@ -788,18 +801,18 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
         {/* ══════════════ OVERVIEW ══════════════ */}
         {tab==="overview"&&(
-          <div className="fade-in">
+          <div className="fade-up">
             {/* 4 stat tiles — period/ovulation/energy/mood */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
               {[
                 {label:"Period in", val:dToP<=0?"Today":`${dToP}d`, sub:fmtDate(nextP),   color:"#e84393", bg:PHASES.menstruation.bg},
                 {label:"Ovulation", val:dToO<=0?"Now!":dToO===1?"Tmrw":`${dToO}d`,        sub:fmtDate(nextO), color:T.green, bg:PHASES.ovulation.bg},
                 {label:"Energy",    val:tips.energy,  sub:"Current phase",                 color:"#f5a623", bg:PHASES.follicular.bg},
-                {label:"Mood",      val:tips.mood,    sub:"Expected",                      color:T.lavender, bg:PHASES.luteal.bg},
+                {label:"Mood",      val:tips.mood,    sub:"Expected",                      color:T.accent, bg:PHASES.luteal.bg},
               ].map((s,i)=>(
-                <div key={s.label} className={`fade-in-${i+1}`} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:T.r.lg,padding:"15px 17px"}}>
+                <div key={s.label} className={`fade-up-${i+1}`} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:T.r.lg,padding:"15px 17px"}}>
                   <Lbl style={{color:s.color+"88"}}>{s.label}</Lbl>
-                  <div style={{fontSize:20,fontWeight:900,color:s.color,fontFamily:T.fontSerif,marginBottom:3,lineHeight:1}}>{s.val}</div>
+                  <div style={{fontSize:20,fontWeight:800,color:s.color,fontFamily:T.fontDisp,marginBottom:3,lineHeight:1}}>{s.val}</div>
                   <div style={{fontSize:12,color:T.textMute}}>{s.sub}</div>
                 </div>
               ))}
@@ -843,7 +856,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 <div style={{fontSize:14,fontWeight:700,color:T.text}}>🔴 Period started today?</div>
                 <div style={{fontSize:12,color:T.textMute,marginTop:2}}>Updates your last period date to today</div>
               </div>
-              <button onClick={markPeriod} className="dd-btn" style={{
+              <button onClick={markPeriod} className="pressable" style={{
                 background:periodFlash?"#4caf7a":"#e84393",color:"#fff",border:"none",
                 borderRadius:T.r.lg,padding:"9px 16px",fontSize:13,fontWeight:800,
                 cursor:"pointer",flexShrink:0,boxShadow:`0 3px 10px ${periodFlash?"#4caf7a55":"#e8439355"}`,
@@ -857,22 +870,22 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
         {/* ══════════════ CALENDAR ══════════════ */}
         {tab==="calendar"&&(
-          <div className="fade-in">
+          <div className="fade-up">
             {/* Month calendar */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:22,marginBottom:14,boxShadow:T.cardShadow}}>
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:22,marginBottom:14,boxShadow:T.shadow}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
-                <button onClick={()=>setMonthOffset(m=>m-1)} className="dd-btn" style={{width:38,height:38,borderRadius:"50%",background:T.surface2,border:`1px solid ${T.border}`,color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+                <button onClick={()=>setMonthOffset(m=>m-1)} className="pressable" style={{width:38,height:38,borderRadius:"50%",background:T.surface2,border:`1px solid ${T.border}`,color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:17,fontWeight:800,color:T.text}}>{calLabel}</div>
-                  {monthOffset!==0&&<button onClick={()=>setMonthOffset(0)} style={{background:"none",border:"none",color:PD.color,fontSize:11,cursor:"pointer",marginTop:3,fontFamily:T.fontBody,textDecoration:"underline"}}>Today</button>}
+                  {monthOffset!==0&&<button onClick={()=>setMonthOffset(0)} style={{background:"none",border:"none",color:PD.color,fontSize:11,cursor:"pointer",marginTop:3,fontFamily:T.fontUI,textDecoration:"underline"}}>Today</button>}
                 </div>
-                <button onClick={()=>setMonthOffset(m=>m+1)} className="dd-btn" style={{width:38,height:38,borderRadius:"50%",background:T.surface2,border:`1px solid ${T.border}`,color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+                <button onClick={()=>setMonthOffset(m=>m+1)} className="pressable" style={{width:38,height:38,borderRadius:"50%",background:T.surface2,border:`1px solid ${T.border}`,color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
               </div>
               <MonthCalendar profile={profile} monthOffset={monthOffset}/>
             </div>
 
             {/* Intimacy log — no separate + Add button, FAB handles it */}
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:18,boxShadow:T.cardShadow}}>
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:18,boxShadow:T.shadow}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div>
                   <Lbl style={{marginBottom:2}}>Intimacy Log</Lbl>
@@ -891,7 +904,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                         <span style={{fontSize:13,color:T.text,fontWeight:600}}>💕 {fmtDate(d)}</span>
                         <span style={{background:col+"1a",border:`1px solid ${col}30`,borderRadius:T.r.pill,padding:"2px 9px",fontSize:10,color:col,marginLeft:8}}>{PHASES[ph].label} · Day {cd}</span>
                       </div>
-                      <button onClick={()=>removeIntimacy(d)} className="dd-btn" style={{background:"none",border:"none",color:T.textMute,cursor:"pointer",fontSize:18,lineHeight:1,padding:"3px 7px"}}>×</button>
+                      <button onClick={()=>removeIntimacy(d)} className="pressable" style={{background:"none",border:"none",color:T.textMute,cursor:"pointer",fontSize:18,lineHeight:1,padding:"3px 7px"}}>×</button>
                     </div>
                   );
                 })
@@ -902,28 +915,28 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
 
         {/* ══════════════ INSIGHTS ══════════════ */}
         {tab==="insights"&&(
-          <div className="fade-in">
+          <div className="fade-up">
             {Object.values(PHASES).map((val,i)=>{
               const t=TIPS[val.key], isCur=phase===val.key;
               const liveDays=bounds[val.key];
               return (
-                <div key={val.key} className={`fade-in-${Math.min(i,3)}`} style={{
+                <div key={val.key} className={`fade-up-${Math.min(i,3)}`} style={{
                   background:isCur?`linear-gradient(135deg,${val.bg},${T.surface})`:T.surface,
                   border:`1px solid ${isCur?val.color+"50":T.border}`,
                   borderRadius:T.r.xl,padding:20,marginBottom:12,
-                  boxShadow:isCur?`0 6px 28px ${val.color}18`:T.cardShadow,
+                  boxShadow:isCur?`0 6px 28px ${val.color}18`:T.shadow,
                 }}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{width:44,height:44,borderRadius:14,background:val.color+"1a",border:`1px solid ${val.color}28`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{val.emoji}</div>
                       <div>
-                        <div style={{fontSize:15,fontWeight:800,color:val.color,fontFamily:T.fontSerif}}>{val.label}</div>
+                        <div style={{fontSize:15,fontWeight:800,color:val.color,fontFamily:T.fontDisp}}>{val.label}</div>
                         <div style={{fontSize:11,color:T.textMute}}>Day {liveDays[0]}–{liveDays[1]} · {Math.max(0,liveDays[1]-liveDays[0]+1)}d</div>
                       </div>
                     </div>
                     {isCur&&<div style={{background:val.color,borderRadius:T.r.pill,padding:"4px 14px",fontSize:11,fontWeight:800,color:"#111"}}>NOW</div>}
                   </div>
-                  <p style={{fontSize:14,color:T.textSoft,lineHeight:1.7,margin:"0 0 14px"}}>{t.note}</p>
+                  <p style={{fontSize:14,color:T.textSub,lineHeight:1.7,margin:"0 0 14px"}}>{t.note}</p>
                   <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                     {[`⚡ ${t.energy}`,`🧠 ${t.mood}`,`💫 ${t.libido}`,t.safe?"✅ Safe":"⚠️ Risky"].map(tag=>(
                       <span key={tag} style={{background:val.color+"18",border:`1px solid ${val.color}28`,borderRadius:T.r.pill,padding:"5px 13px",fontSize:12,color:val.color}}>{tag}</span>
@@ -942,16 +955,16 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
           const ovd  = profile.ovulationDay   || 14;
           const ovl  = profile.ovulationLength|| 3;
           return (
-            <div className="fade-in">
-              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
-                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:14}}>🗓 Cycle Settings</div>
+            <div className="fade-up">
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.shadow}}>
+                <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:14}}>🗓 Cycle Settings</div>
                 <div style={{marginBottom:18}}>
                   <Lbl>Last Period Start Date</Lbl>
-                  <input type="date" value={profile.lastPeriodStart||""} className="dd-input"
+                  <input type="date" value={profile.lastPeriodStart||""} className="field"
                     onChange={e=>onUpdate({...profile,lastPeriodStart:e.target.value})}
                     style={inputStyle}/>
                 </div>
-                <SliderRow label="Total Cycle Length" emoji="🔄" color={T.lavender}
+                <SliderRow label="Total Cycle Length" emoji="🔄" color={T.accent}
                   value={cl} min={18} max={60}
                   note={`Full cycle from Day 1 to Day ${cl}`}
                   onChange={v=>{
@@ -960,12 +973,12 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                   }}
                 />
                 <Hr/>
-                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:6}}>⚙️ Phase Boundaries</div>
+                <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:6}}>⚙️ Phase Boundaries</div>
                 <PhaseDividerBar profile={profile} onUpdate={onUpdate}/>
                 <Hr/>
-                <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:12}}>📝 Notes</div>
+                <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:12}}>📝 Notes</div>
                 <textarea value={profile.notes||""} onChange={e=>onUpdate({...profile,notes:e.target.value})}
-                  placeholder="Mood patterns, observations…" className="dd-input"
+                  placeholder="Mood patterns, observations…" className="field"
                   style={{...inputStyle,minHeight:90,resize:"vertical",fontSize:14}}/>
               </div>
             </div>
@@ -974,11 +987,11 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
       </div>
 
       {/* ── FAB — fixed bottom-right, opens log intimacy ── */}
-      <button onClick={()=>setShowLogModal(true)} className="dd-btn" style={{
+      <button onClick={()=>setShowLogModal(true)} className="pressable" style={{
         position:"fixed",bottom:28,right:24,
         width:58,height:58,borderRadius:"50%",
-        background:`linear-gradient(135deg,${T.lavender},#9b6fe8)`,
-        border:"none",boxShadow:`0 6px 24px ${T.lavender}77`,
+        background:`linear-gradient(135deg,${T.accent},#9b6fe8)`,
+        border:"none",boxShadow:`0 6px 24px ${T.accent}77`,
         fontSize:24,cursor:"pointer",zIndex:200,
         display:"flex",alignItems:"center",justifyContent:"center",
         transition:"transform 0.15s ease, box-shadow 0.15s ease",
@@ -1031,13 +1044,13 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:400}}>
           <div className="sheet-in" style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:"22px 22px 0 0",padding:28,width:"100%",maxWidth:500,boxShadow:"0 -8px 36px rgba(0,0,0,0.5)"}}>
             <div style={{width:36,height:4,borderRadius:2,background:T.border,margin:"0 auto 22px"}}/>
-            <h3 style={{fontFamily:T.fontSerif,fontSize:20,marginBottom:20}}>💕 Log Intimacy Session</h3>
+            <h3 style={{fontFamily:T.fontDisp,fontSize:20,marginBottom:20}}>💕 Log Intimacy Session</h3>
             <Lbl>Date</Lbl>
-            <input type="date" value={logDate} onChange={e=>setLogDate(e.target.value)} className="dd-input"
+            <input type="date" value={logDate} onChange={e=>setLogDate(e.target.value)} className="field"
               style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"12px 15px",color:T.text,fontSize:14,outline:"none",display:"block",marginBottom:22}}/>
             <div style={{display:"flex",gap:10}}>
-              <DDBtn variant="ghost" onClick={()=>setShowLogModal(false)} style={{flex:1,padding:14}}>Cancel</DDBtn>
-              <button className="dd-btn" onClick={logIntimacy} style={{flex:2,padding:14,background:T.lavender,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${T.lavender}55`}}>Save Session 💕</button>
+              <Btn variant="ghost" onClick={()=>setShowLogModal(false)} style={{flex:1,padding:14}}>Cancel</Btn>
+              <button className="pressable" onClick={logIntimacy} style={{flex:2,padding:14,background:T.accent,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${T.accent}55`}}>Save Session 💕</button>
             </div>
           </div>
         </div>
@@ -1046,13 +1059,13 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
       {/* ── DELETE MODAL ── */}
       {showDelModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:20}}>
-          <div className="scale-in" style={{background:T.surface,border:"1px solid rgba(224,85,85,0.28)",borderRadius:T.r.xl,padding:32,width:"100%",maxWidth:340,textAlign:"center",boxShadow:T.deepShadow}}>
+          <div className="scale-in" style={{background:T.surface,border:"1px solid rgba(224,85,85,0.28)",borderRadius:T.r.xl,padding:32,width:"100%",maxWidth:340,textAlign:"center",boxShadow:T.shadowLg}}>
             <div style={{fontSize:44,marginBottom:14}}>🗑️</div>
-            <h3 style={{fontFamily:T.fontSerif,fontSize:22,marginBottom:8}}>Delete {profile.name}?</h3>
-            <p style={{color:T.textSoft,fontSize:13,marginBottom:26,lineHeight:1.65}}>All cycle history, intimacy logs, symptoms and notes will be permanently removed.</p>
+            <h3 style={{fontFamily:T.fontDisp,fontSize:22,marginBottom:8}}>Delete {profile.name}?</h3>
+            <p style={{color:T.textSub,fontSize:13,marginBottom:26,lineHeight:1.65}}>All cycle history, intimacy logs, symptoms and notes will be permanently removed.</p>
             <div style={{display:"flex",gap:10}}>
-              <DDBtn variant="ghost" onClick={()=>setShowDelModal(false)} style={{flex:1,padding:14}}>Cancel</DDBtn>
-              <button className="dd-btn" onClick={onDelete} style={{flex:1,padding:14,background:T.red,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer"}}>Delete</button>
+              <Btn variant="ghost" onClick={()=>setShowDelModal(false)} style={{flex:1,padding:14}}>Cancel</Btn>
+              <button className="pressable" onClick={onDelete} style={{flex:1,padding:14,background:T.red,color:"#fff",border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer"}}>Delete</button>
             </div>
           </div>
         </div>
@@ -1093,14 +1106,13 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
   }
 
   return (
-    <div style={{minHeight:"100vh",background:T.pageBg,color:T.text,fontFamily:T.fontBody}}>
-      <BgDecor phase="luteal"/>
+    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"18px 16px 100px"}}>
-        <DDBtn variant="ghost" onClick={onBack} style={{marginBottom:24,padding:"8px 16px",fontSize:13}}>← Back</DDBtn>
+        <Btn variant="ghost" onClick={onBack} style={{marginBottom:24,padding:"8px 16px",fontSize:13}}>← Back</Btn>
 
-        <div className="fade-in" style={{marginBottom:22}}>
-          <h2 style={{fontFamily:T.fontSerif,fontSize:30,fontWeight:800,marginBottom:5,lineHeight:1.1}}>Add Profile</h2>
-          <p style={{color:T.textSoft,fontSize:14,lineHeight:1.55}}>Fill in manually or paste a partner code to import.</p>
+        <div className="fade-up" style={{marginBottom:22}}>
+          <h2 style={{fontFamily:T.fontDisp,fontSize:26,fontWeight:400,marginBottom:5,lineHeight:1.1}}>Add Profile</h2>
+          <p style={{color:T.textSub,fontSize:14,lineHeight:1.55}}>Fill in manually or paste a partner code to import.</p>
         </div>
 
         {/* Mode toggle — DD pill tab style */}
@@ -1108,26 +1120,26 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
           {[{id:"manual",label:"✏️ Manual"},{id:"import",label:"📥 Import Code"}].map(m=>(
             <button key={m.id} onClick={()=>setMode(m.id)} className="tab-btn" style={{
               flex:1,border:"none",borderRadius:T.r.pill,padding:"10px 8px",
-              background:mode===m.id?T.lavender:"transparent",
+              background:mode===m.id?T.accent:"transparent",
               color:mode===m.id?"#fff":T.textMute,
               fontSize:13,fontWeight:mode===m.id?800:600,cursor:"pointer",
-              fontFamily:T.fontBody,
-              boxShadow:mode===m.id?`0 2px 10px ${T.lavender}45`:"none",
+              fontFamily:T.fontUI,
+              boxShadow:mode===m.id?`0 2px 10px ${T.accent}45`:"none",
             }}>{m.label}</button>
           ))}
         </div>
 
         {/* ── MANUAL MODE ── */}
         {mode==="manual"&&(
-          <div className="fade-in">
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
+          <div className="fade-up">
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.shadow}}>
               <Lbl>Choose Avatar</Lbl>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
                 {AVATARS.map(a=>(
-                  <button key={a} onClick={()=>setForm({...form,avatar:a})} className="dd-btn" style={{
+                  <button key={a} onClick={()=>setForm({...form,avatar:a})} className="pressable" style={{
                     width:46,height:46,fontSize:21,borderRadius:13,cursor:"pointer",
                     background:form.avatar===a?"rgba(124,92,191,0.25)":"rgba(255,255,255,0.05)",
-                    border:`2px solid ${form.avatar===a?T.lavender:T.border}`,transition:"all 0.15s",
+                    border:`2px solid ${form.avatar===a?T.accent:T.border}`,transition:"all 0.15s",
                   }}>{a}</button>
                 ))}
               </div>
@@ -1140,14 +1152,14 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
               ].map(f=>(
                 <div key={f.key} style={{marginBottom:16}}>
                   <Lbl>{f.label}</Lbl>
-                  <input type={f.type} value={form[f.key]} placeholder={f.ph} className="dd-input"
+                  <input type={f.type} value={form[f.key]} placeholder={f.ph} className="field"
                     min={f.type==="number"?1:undefined} max={f.type==="number"?60:undefined}
                     onChange={e=>setForm({...form,[f.key]:f.type==="number"?Math.max(1,parseInt(e.target.value)||28):e.target.value})}
                     style={inputStyle} autoFocus={f.key==="name"}/>
                 </div>
               ))}
             </div>
-            <button className="dd-btn" onClick={submitManual} disabled={!ok}
+            <button className="pressable" onClick={submitManual} disabled={!ok}
               style={{width:"100%",padding:"16px",background:ok?"#111":"rgba(255,255,255,0.1)",color:ok?T.text:"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,cursor:ok?"pointer":"not-allowed",boxShadow:ok?"0 4px 18px rgba(0,0,0,0.55)":"none",letterSpacing:"0.02em"}}>
               Add Profile →
             </button>
@@ -1156,10 +1168,10 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
 
         {/* ── IMPORT MODE ── */}
         {mode==="import"&&(
-          <div className="fade-in">
-            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.cardShadow}}>
+          <div className="fade-up">
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.shadow}}>
 
-              <div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:6}}>📥 Paste Partner Code</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:6}}>📥 Paste Partner Code</div>
               <div style={{fontSize:13,color:T.textMute,lineHeight:1.6,marginBottom:16}}>
                 Paste a code generated by Cyclr or exported from any period tracking app. All data will be imported instantly.
               </div>
@@ -1168,7 +1180,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
                 value={codeStr}
                 onChange={e=>tryDecode(e.target.value)}
                 placeholder="Paste code here — starts with CYC- or paste raw data…"
-                className="dd-input"
+                className="field"
                 style={{...inputStyle,minHeight:100,resize:"vertical",fontSize:13,fontFamily:"monospace",marginBottom:0}}
               />
 
@@ -1181,7 +1193,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
 
               {/* Success preview */}
               {decoded&&!editingImport&&(
-                <div className="fade-in" style={{marginTop:14}}>
+                <div className="fade-up" style={{marginTop:14}}>
                   <div style={{padding:"4px 0 10px",fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.green}}>✓ CODE RECOGNISED</div>
                   {/* Profile preview card */}
                   <div style={{background:T.surface2,border:`1px solid ${T.green}33`,borderRadius:T.r.lg,padding:16,marginBottom:12}}>
@@ -1217,16 +1229,16 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
                         {label:`💕 Sessions`,      val:decoded.intimacyLog.length},
                         {label:`🏷 Symptoms`,      val:decoded.symptoms.length},
                       ].map(s=>(
-                        <span key={s.label} style={{fontSize:11,color:T.textSoft,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"4px 10px"}}>{s.label}: <b style={{color:T.text}}>{s.val}</b></span>
+                        <span key={s.label} style={{fontSize:11,color:T.textSub,background:"rgba(255,255,255,0.06)",borderRadius:T.r.pill,padding:"4px 10px"}}>{s.label}: <b style={{color:T.text}}>{s.val}</b></span>
                       ))}
                     </div>
                   </div>
                   {/* Options */}
                   <div style={{display:"flex",gap:10}}>
-                    <button className="dd-btn" onClick={()=>setEditingImport(true)} style={{flex:1,padding:12,background:T.surface2,color:T.textSoft,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    <button className="pressable" onClick={()=>setEditingImport(true)} style={{flex:1,padding:12,background:T.surface2,color:T.textSub,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
                       ✏️ Edit First
                     </button>
-                    <button className="dd-btn" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                    <button className="pressable" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
                       ✓ Import Profile
                     </button>
                   </div>
@@ -1235,16 +1247,16 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
 
               {/* Edit-before-import mode */}
               {decoded&&editingImport&&(
-                <div className="fade-in" style={{marginTop:14}}>
-                  <div style={{padding:"4px 0 14px",fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.lavender}}>EDITING IMPORTED DATA</div>
+                <div className="fade-up" style={{marginTop:14}}>
+                  <div style={{padding:"4px 0 14px",fontSize:11,fontWeight:800,letterSpacing:1.5,color:T.accent}}>EDITING IMPORTED DATA</div>
                   {/* Avatar */}
                   <Lbl>Avatar</Lbl>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
                     {AVATARS.map(a=>(
-                      <button key={a} onClick={()=>setDecoded({...decoded,avatar:a})} className="dd-btn" style={{
+                      <button key={a} onClick={()=>setDecoded({...decoded,avatar:a})} className="pressable" style={{
                         width:42,height:42,fontSize:19,borderRadius:11,cursor:"pointer",
                         background:decoded.avatar===a?"rgba(124,92,191,0.25)":"rgba(255,255,255,0.05)",
-                        border:`2px solid ${decoded.avatar===a?T.lavender:T.border}`,transition:"all 0.15s",
+                        border:`2px solid ${decoded.avatar===a?T.accent:T.border}`,transition:"all 0.15s",
                       }}>{a}</button>
                     ))}
                   </div>
@@ -1258,17 +1270,17 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
                   ].map(f=>(
                     <div key={f.key} style={{marginBottom:14}}>
                       <Lbl>{f.label}</Lbl>
-                      <input type={f.type} value={decoded[f.key]||""} className="dd-input"
+                      <input type={f.type} value={decoded[f.key]||""} className="field"
                         min={f.type==="number"?1:undefined} max={f.type==="number"?60:undefined}
                         onChange={e=>setDecoded({...decoded,[f.key]:f.type==="number"?Math.max(1,parseInt(e.target.value)||1):e.target.value})}
                         style={inputStyle}/>
                     </div>
                   ))}
                   <div style={{display:"flex",gap:10,marginTop:6}}>
-                    <button className="dd-btn" onClick={()=>setEditingImport(false)} style={{flex:1,padding:12,background:T.surface2,color:T.textSoft,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    <button className="pressable" onClick={()=>setEditingImport(false)} style={{flex:1,padding:12,background:T.surface2,color:T.textSub,border:`1px solid ${T.border}`,borderRadius:T.r.lg,fontSize:13,fontWeight:700,cursor:"pointer"}}>
                       ← Back
                     </button>
-                    <button className="dd-btn" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                    <button className="pressable" onClick={submitImport} style={{flex:2,padding:12,background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
                       ✓ Import Profile
                     </button>
                   </div>
@@ -1278,7 +1290,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
 
             {/* How it works info box */}
             {!decoded&&!codeErr&&(
-              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:18,boxShadow:T.cardShadow}}>
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:18,boxShadow:T.shadow}}>
                 <div style={{fontSize:13,fontWeight:800,color:T.text,marginBottom:12}}>💡 How to get a code</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {[
@@ -1288,8 +1300,8 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
                     {step:"4", text:"Paste the code above and your partner's data imports instantly"},
                   ].map(s=>(
                     <div key={s.step} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                      <div style={{width:24,height:24,borderRadius:"50%",background:T.lavender+"22",border:`1px solid ${T.lavender}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:T.lavender,flexShrink:0}}>{s.step}</div>
-                      <div style={{fontSize:13,color:T.textSoft,lineHeight:1.55,paddingTop:2}}>{s.text}</div>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:T.accent+"22",border:`1px solid ${T.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:T.accent,flexShrink:0}}>{s.step}</div>
+                      <div style={{fontSize:13,color:T.textSub,lineHeight:1.55,paddingTop:2}}>{s.text}</div>
                     </div>
                   ))}
                 </div>
@@ -1315,36 +1327,35 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
   const sessCt   = active.reduce((a,p)=>a+(p.intimacyLog||[]).length,0);
 
   return (
-    <div style={{minHeight:"100vh",background:T.pageBg,color:T.text,fontFamily:T.fontBody,position:"relative"}}>
-      <BgDecor phase="luteal"/>
+    <div style={{minHeight:"100vh",background:T.page,color:T.text,fontFamily:T.fontUI,position:"relative"}}>
       <div style={{position:"relative",zIndex:2,maxWidth:500,margin:"0 auto",padding:"0 16px 120px"}}>
 
         {/* ── HEADER — name left, kebab right ── */}
-        <div className="fade-in" style={{padding:"26px 0 20px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div className="fade-up" style={{padding:"26px 0 20px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div>
             <p style={{fontSize:12,color:T.textMute,letterSpacing:0.4,marginBottom:3,fontWeight:600}}>Welcome back</p>
-            <h1 style={{fontFamily:T.fontSerif,fontSize:28,fontWeight:800,marginBottom:3,lineHeight:1.1}}>{user.username}</h1>
+            <h1 style={{fontFamily:T.fontDisp,fontSize:26,fontWeight:400,marginBottom:3,lineHeight:1.1}}>{user.username}</h1>
             <p style={{fontSize:12,color:T.textMute}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
           </div>
-          <button onClick={()=>setShowMenu(true)} className="dd-btn" style={{
+          <button onClick={()=>setShowMenu(true)} className="pressable" style={{
             width:42,height:42,borderRadius:"50%",marginTop:4,flexShrink:0,
             background:"rgba(255,255,255,0.07)",border:`1px solid ${T.border}`,
-            color:T.textSoft,fontSize:20,cursor:"pointer",
+            color:T.textSub,fontSize:20,cursor:"pointer",
             display:"flex",alignItems:"center",justifyContent:"center",letterSpacing:1,
           }}>⋯</button>
         </div>
 
         {/* ── SUMMARY STRIP ── */}
         {active.length>0&&(
-          <div className="fade-in-1" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
+          <div className="fade-up-1" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
             {[
-              {label:"Profiles",  val:active.length, color:T.lavender, bg:PHASES.luteal.bg},
+              {label:"Profiles",  val:active.length, color:T.accent, bg:PHASES.luteal.bg},
               {label:"Safe Now",  val:safeCt,         color:T.green,    bg:PHASES.ovulation.bg},
               {label:"Ovulating", val:ovCt,           color:"#f5a623",  bg:PHASES.follicular.bg},
               {label:"Sessions",  val:sessCt,         color:"#e84393",  bg:PHASES.menstruation.bg},
             ].map(s=>(
-              <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}20`,borderRadius:T.r.lg,padding:"12px 8px",textAlign:"center",boxShadow:T.cardShadow}}>
-                <div style={{fontSize:22,fontWeight:900,color:s.color,lineHeight:1,fontFamily:T.fontSerif}}>{s.val}</div>
+              <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}20`,borderRadius:T.r.lg,padding:"12px 8px",textAlign:"center",boxShadow:T.shadow}}>
+                <div style={{fontSize:22,fontWeight:800,color:s.color,lineHeight:1,fontFamily:T.fontDisp}}>{s.val}</div>
                 <div style={{fontSize:10,color:T.textMute,marginTop:4,fontWeight:600}}>{s.label}</div>
               </div>
             ))}
@@ -1353,7 +1364,7 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
 
         {/* ── HIDDEN TOGGLE ── */}
         {hiddenCt>0&&(
-          <button onClick={()=>setShowHidden(h=>!h)} className="dd-btn" style={{
+          <button onClick={()=>setShowHidden(h=>!h)} className="pressable" style={{
             width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,
             borderRadius:T.r.pill,padding:"11px",color:T.textMute,fontSize:12,fontWeight:700,
             cursor:"pointer",marginBottom:14,
@@ -1364,14 +1375,14 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
 
         {/* ── EMPTY STATE ── */}
         {visible.length===0?(
-          <div className="fade-in" style={{textAlign:"center",padding:"72px 20px"}}>
+          <div className="fade-up" style={{textAlign:"center",padding:"72px 20px"}}>
             <div style={{fontSize:58,marginBottom:16}}>🌙</div>
-            <h2 style={{fontFamily:T.fontSerif,fontSize:24,marginBottom:10}}>{showHidden?"No hidden profiles":"No profiles yet"}</h2>
-            <p style={{color:T.textSoft,marginBottom:32,lineHeight:1.65,fontSize:14}}>
+            <h2 style={{fontFamily:T.fontDisp,fontSize:24,marginBottom:10}}>{showHidden?"No hidden profiles":"No profiles yet"}</h2>
+            <p style={{color:T.textSub,marginBottom:32,lineHeight:1.65,fontSize:14}}>
               {showHidden?"All profiles are visible.":"Add your first profile to start tracking."}
             </p>
             {!showHidden&&(
-              <button className="dd-btn" onClick={onAdd} style={{background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,padding:"13px 32px",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 18px rgba(0,0,0,0.55)"}}>
+              <button className="pressable" onClick={onAdd} style={{background:"#111",color:T.text,border:"none",borderRadius:T.r.lg,padding:"13px 32px",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 18px rgba(0,0,0,0.55)"}}>
                 Add First Profile →
               </button>
             )}
@@ -1383,7 +1394,7 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
               const phase=getPhaseFromDay(day,profile), PD=PHASES[phase], tips=TIPS[phase];
               const dToP=daysUntil(getNextPeriod(profile.lastPeriodStart,profile.cycleLength));
               const dToO=daysUntil(getOvulation(profile.lastPeriodStart,profile));
-              const accent=CARD_ACCENTS[idx%CARD_ACCENTS.length];
+              const accent=PD.color;
               const b=getPhaseBounds(profile);
               const segs=[
                 {key:"menstruation",days:b.menstruation,color:"#e84393"},
@@ -1392,14 +1403,14 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
                 {key:"luteal",      days:b.luteal,      color:"#9b59b6"},
               ];
               return (
-                <div key={profile.id} className={`dd-card-hover fade-in-${Math.min(idx+1,3)}`} onClick={()=>onSelect(profile)}
-                  style={{borderRadius:T.r.xl,overflow:"hidden",cursor:"pointer",background:T.surface,boxShadow:T.cardShadow}}>
+                <div key={profile.id} className={`card-lift fade-up-${Math.min(idx+1,3)}`} onClick={()=>onSelect(profile)}
+                  style={{borderRadius:T.r.xl,overflow:"hidden",cursor:"pointer",background:T.surface,boxShadow:T.shadow}}>
                   <div style={{height:5,background:`linear-gradient(90deg,${accent},${accent}77)`}}/>
                   <div style={{padding:"18px 18px 16px",border:`1px solid ${accent}15`,borderTop:"none",borderRadius:`0 0 ${T.r.xl}px ${T.r.xl}px`}}>
                     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
                       <div style={{width:52,height:52,borderRadius:16,background:accent+"25",border:`2px solid ${accent}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:17,fontWeight:800,fontFamily:T.fontSerif,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{profile.name}</div>
+                        <div style={{fontSize:17,fontWeight:800,fontFamily:T.fontDisp,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{profile.name}</div>
                         <div style={{display:"inline-flex",alignItems:"center",gap:5,background:PD.color+"1a",borderRadius:T.r.pill,padding:"3px 10px",border:`1px solid ${PD.color}25`}}>
                           <span style={{fontSize:10}}>{PD.emoji}</span>
                           <span style={{fontSize:11,color:PD.color,fontWeight:700}}>{PD.label} · Day {day}</span>
@@ -1421,10 +1432,10 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
                       {[
                         {label:"Period",    val:dToP<=0?"Today":`${dToP}d`,                color:"#e84393",bg:PHASES.menstruation.bg},
                         {label:"Ovulation", val:dToO<=0?"Now!":dToO===1?"Tmrw":`${dToO}d`,color:T.green,  bg:PHASES.ovulation.bg},
-                        {label:"Sessions",  val:(profile.intimacyLog||[]).length,          color:T.lavender,bg:PHASES.luteal.bg},
+                        {label:"Sessions",  val:(profile.intimacyLog||[]).length,          color:T.accent,bg:PHASES.luteal.bg},
                       ].map(s=>(
                         <div key={s.label} style={{background:s.bg,borderRadius:T.r.md,padding:"9px 10px"}}>
-                          <div style={{fontSize:15,fontWeight:900,color:s.color,fontFamily:T.fontSerif,lineHeight:1}}>{s.val}</div>
+                          <div style={{fontSize:15,fontWeight:800,color:s.color,fontFamily:T.fontDisp,lineHeight:1}}>{s.val}</div>
                           <div style={{fontSize:10,color:T.textMute,marginTop:3}}>{s.label}</div>
                         </div>
                       ))}
@@ -1446,7 +1457,7 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
       </div>
 
       {/* ── FAB — add profile ── */}
-      <button onClick={onAdd} className="dd-btn" style={{
+      <button onClick={onAdd} className="pressable" style={{
         position:"fixed",bottom:28,right:24,
         width:58,height:58,borderRadius:"50%",
         background:"#111",border:"none",
@@ -1506,35 +1517,34 @@ function Login({ onLogin }) {
   const ok=username.trim().length>0;
 
   return (
-    <div style={{minHeight:"100vh",background:T.pageBg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fontBody,position:"relative",padding:20}}>
-      <BgDecor phase="luteal"/>
+    <div style={{minHeight:"100vh",background:T.page,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fontUI,position:"relative",padding:20}}>
       {/* Extra blobs */}
-      <div style={{position:"absolute",top:"8%",right:"-6%",width:240,height:240,borderRadius:"60% 40% 55% 45%",background:T.lavender+"15",pointerEvents:"none",animation:"floatBlob 16s ease-in-out infinite"}}/>
+      <div style={{position:"absolute",top:"8%",right:"-6%",width:240,height:240,borderRadius:"60% 40% 55% 45%",background:T.accent+"15",pointerEvents:"none",animation:"floatBlob 16s ease-in-out infinite"}}/>
       <div style={{position:"absolute",bottom:"12%",left:"-8%",width:200,height:200,borderRadius:"50%",background:"#e84393"+"12",pointerEvents:"none",animation:"floatBlob 21s ease-in-out infinite 4s"}}/>
 
       {/* ── LOGIN CARD — DD centered modal on grey bg ── */}
       <div className="scale-in" style={{position:"relative",zIndex:2,width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{fontSize:54,marginBottom:14,animation:"floatBlob 6s ease-in-out infinite"}}>🌙</div>
-          <h1 style={{fontFamily:T.fontSerif,fontSize:40,fontWeight:800,lineHeight:1.1,color:T.text,margin:"0 0 10px"}}>
+          <h1 style={{fontFamily:T.fontDisp,fontSize:36,fontWeight:400,lineHeight:1.15,color:T.text,margin:"0 0 10px"}}>
             Find Your<br/>Best Insight.
           </h1>
           <p style={{color:T.textMute,fontSize:14,lineHeight:1.6}}>Cycle intelligence for the informed man.</p>
         </div>
 
         {/* The actual form card */}
-        <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,boxShadow:T.deepShadow}}>
+        <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:28,boxShadow:T.shadowLg}}>
           <Lbl>Username</Lbl>
           <div style={{marginBottom:20}}>
             <input value={username} onChange={e=>setUsername(e.target.value)}
               onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
               onKeyDown={e=>e.key==="Enter"&&ok&&onLogin(username.trim())}
-              placeholder="Enter your name" autoFocus className="dd-input"
+              placeholder="Enter your name" autoFocus className="field"
               style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1.5px solid ${focused?T.borderMd:T.border}`,borderRadius:T.r.md,padding:"13px 16px",color:T.text,fontSize:15,outline:"none",boxShadow:focused?"0 0 0 3px rgba(255,255,255,0.06)":undefined,transition:"border-color 0.14s,box-shadow 0.14s"}}
             />
           </div>
           {/* Big black CTA — "Choose Deck & Start Playing" equivalent */}
-          <button className="dd-btn" onClick={()=>ok&&onLogin(username.trim())} disabled={!ok}
+          <button className="pressable" onClick={()=>ok&&onLogin(username.trim())} disabled={!ok}
             style={{width:"100%",padding:"15px",background:ok?"#111":"rgba(255,255,255,0.08)",color:ok?T.text:"rgba(255,255,255,0.25)",border:"none",borderRadius:T.r.lg,fontSize:15,fontWeight:800,cursor:ok?"pointer":"not-allowed",boxShadow:ok?"0 4px 20px rgba(0,0,0,0.6)":"none",letterSpacing:"0.02em",transition:"all 0.15s"}}>
             Get Started →
           </button>
@@ -1575,7 +1585,7 @@ export default function App() {
   function goImport(){ setAddMode("import");  setScreen("add"); }
 
   if(screen==="loading") return (
-    <div style={{minHeight:"100vh",background:T.pageBg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{minHeight:"100vh",background:T.page,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{fontSize:40,animation:"pulse 1.5s ease-in-out infinite"}}>🌙</div>
     </div>
   );
