@@ -231,24 +231,98 @@ function encodePartnerCode(profile) {
 }
 
 function decodePartnerCode(code) {
+  const raw = code.trim();
+  if (!raw) return null;
+
+  // ── Strategy 1: Our own CYC- base64 format ──
+  if (/^CYC-/i.test(raw)) {
+    try {
+      const stripped = raw.replace(/^CYC-/i, "");
+      const json = JSON.parse(decodeURIComponent(escape(atob(stripped))));
+      if (!json.n || !json.lp) throw new Error("missing fields");
+      return {
+        name:            json.n,
+        avatar:          json.av || "🌸",
+        lastPeriodStart: json.lp,
+        cycleLength:     Math.max(18, Math.min(60,  json.cl || 28)),
+        periodLength:    Math.max(1,  Math.min(10,  json.pl || 5)),
+        ovulationDay:    Math.max(2,  Math.min(58,  json.od || 14)),
+        ovulationLength: Math.max(1,  Math.min(7,   json.ol || 3)),
+        symptoms:        Array.isArray(json.sy) ? json.sy : [],
+        intimacyLog:     Array.isArray(json.il) ? json.il : [],
+        notes:           json.nt || "",
+      };
+    } catch { return null; }
+  }
+
+  // ── Strategy 2: Bare base64 (no prefix) ──
+  if (/^[A-Za-z0-9+/=]{20,}$/.test(raw)) {
+    try {
+      const json = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      if (json.n && json.lp) {
+        return {
+          name: json.n, avatar: json.av||"🌸", lastPeriodStart: json.lp,
+          cycleLength: Math.max(18,Math.min(60,json.cl||28)),
+          periodLength: Math.max(1,Math.min(10,json.pl||5)),
+          ovulationDay: Math.max(2,Math.min(58,json.od||14)),
+          ovulationLength: Math.max(1,Math.min(7,json.ol||3)),
+          symptoms:[], intimacyLog:[], notes:"",
+        };
+      }
+    } catch {}
+  }
+
+  // ── Strategy 3: JSON object (exported data from apps like Clue, Flo) ──
   try {
-    const stripped = code.trim().replace(/^CYC-/i, "");
-    const json = JSON.parse(decodeURIComponent(escape(atob(stripped))));
-    // Validate required fields
-    if (!json.n || !json.lp) return null;
-    return {
-      name:           json.n,
-      avatar:         json.av || "🌸",
-      lastPeriodStart:json.lp,
-      cycleLength:    Math.max(18, Math.min(60,  json.cl || 28)),
-      periodLength:   Math.max(1,  Math.min(10,  json.pl || 5)),
-      ovulationDay:   Math.max(2,  Math.min(58,  json.od || 14)),
-      ovulationLength:Math.max(1,  Math.min(7,   json.ol || 3)),
-      symptoms:       Array.isArray(json.sy) ? json.sy : [],
-      intimacyLog:    Array.isArray(json.il) ? json.il : [],
-      notes:          json.nt || "",
-    };
-  } catch { return null; }
+    const json = JSON.parse(raw);
+    // Try to extract the most common field names used by period apps
+    const name   = json.name || json.username || json.user || json.partner || "Imported";
+    const avatar = "🌸";
+    // Date fields — try many possible names
+    const lp = json.last_period || json.lastPeriodDate || json.lastPeriod ||
+               json.last_period_start || json.periodStart || json.start_date ||
+               json.cycle_start || json.cycleStart || json.period_start;
+    const cl = parseInt(json.cycle_length || json.cycleLength || json.avg_cycle || json.averageCycle || 28);
+    const pl = parseInt(json.period_length || json.periodLength || json.flow_days || json.period_days || 5);
+    // Validate we got at least a date
+    if (lp && !isNaN(new Date(lp).getTime())) {
+      return {
+        name, avatar, lastPeriodStart: new Date(lp).toISOString().split("T")[0],
+        cycleLength: Math.max(18, Math.min(60, isNaN(cl)?28:cl)),
+        periodLength: Math.max(1, Math.min(10, isNaN(pl)?5:pl)),
+        ovulationDay: 14, ovulationLength: 3,
+        symptoms:[], intimacyLog:[], notes: "Imported from another app",
+      };
+    }
+  } catch {}
+
+  // ── Strategy 4: Plain text / CSV — extract dates and numbers ──
+  try {
+    // Look for an ISO date (last period start)
+    const dateMatch = raw.match(/\b(20\d{2}[-/]\d{1,2}[-/]\d{1,2})\b/);
+    if (dateMatch) {
+      const dateStr = dateMatch[1].replace(/\//g,"-");
+      const dateObj = new Date(dateStr);
+      if (!isNaN(dateObj.getTime())) {
+        // Try to find cycle length — a number between 21–35 near "cycle" or "days"
+        const cycleMatch = raw.match(/cycle[^\d]{0,15}(\d{2,3})|(\d{2,3})[^\d]{0,10}days/i);
+        const cl = cycleMatch ? parseInt(cycleMatch[1]||cycleMatch[2]) : 28;
+        // Try to find period length
+        const periodMatch = raw.match(/period[^\d]{0,15}(\d{1,2})|flow[^\d]{0,15}(\d{1,2})/i);
+        const pl = periodMatch ? parseInt(periodMatch[1]||periodMatch[2]) : 5;
+        return {
+          name: "Imported", avatar: "🌸",
+          lastPeriodStart: dateObj.toISOString().split("T")[0],
+          cycleLength: Math.max(18, Math.min(60, isNaN(cl)?28:cl)),
+          periodLength: Math.max(1, Math.min(10, isNaN(pl)?5:pl)),
+          ovulationDay: 14, ovulationLength: 3,
+          symptoms:[], intimacyLog:[], notes: "Imported — please verify dates in the Edit tab.",
+        };
+      }
+    }
+  } catch {}
+
+  return null; // Nothing worked
 }
 
 // ─── SHARED PRIMITIVES ────────────────────────────────────────────────────────
@@ -359,7 +433,7 @@ function MonthCalendar({ profile, monthOffset=0 }) {
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:6}}>
         {["S","M","T","W","T","F","S"].map((d,i)=>(
-          <div key={i} style={{textAlign:"center",fontSize:10,fontWeight:700,color:T.textMute,padding:"2px 0"}}>{d}</div>
+          <div key={i} style={{textAlign:"center",fontSize:12,fontWeight:700,color:T.textMute,padding:"2px 0"}}>{d}</div>
         ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
@@ -372,7 +446,7 @@ function MonthCalendar({ profile, monthOffset=0 }) {
               background:isToday?col:col+"1a", border:`1px solid ${isToday?col:col+"30"}`,
               display:"flex",alignItems:"center",justifyContent:"center",
               boxShadow:isToday?`0 0 10px ${col}55`:"none"}}>
-              <span style={{fontSize:10,color:isToday?"#111":T.textSub,fontWeight:isToday?800:500}}>{d}</span>
+              <span style={{fontSize:12,color:isToday?"#111":T.textSub,fontWeight:isToday?800:500}}>{d}</span>
               {hasI&&<span style={{position:"absolute",top:1,right:1,fontSize:7}}>💕</span>}
             </div>
           );
@@ -383,12 +457,12 @@ function MonthCalendar({ profile, monthOffset=0 }) {
         {Object.values(PHASES).map(v=>(
           <div key={v.key} style={{display:"flex",alignItems:"center",gap:4}}>
             <div style={{width:8,height:8,borderRadius:2,background:v.color}}/>
-            <span style={{fontSize:10,color:T.textMute}}>{v.short}</span>
+            <span style={{fontSize:12,color:T.textMute}}>{v.short}</span>
           </div>
         ))}
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           <span style={{fontSize:9}}>💕</span>
-          <span style={{fontSize:10,color:T.textMute}}>Intimacy</span>
+          <span style={{fontSize:12,color:T.textMute}}>Intimacy</span>
         </div>
       </div>
     </div>
@@ -398,35 +472,129 @@ function MonthCalendar({ profile, monthOffset=0 }) {
 // ─── AI INSIGHT ───────────────────────────────────────────────────────────────
 
 function AIInsight({ profile }) {
-  const [text,setText]=useState(""); const [loading,setLoading]=useState(false); const [err,setErr]=useState(false);
-  const day=getDayOfCycle(profile.lastPeriodStart,profile.cycleLength), phase=getPhaseFromDay(day,profile), PD=PHASES[phase];
+  const [text,     setText]     = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [err,      setErr]      = useState("");
+  const [apiKey,   setApiKey]   = useState(()=>localStorage.getItem("cyclr_api_key")||"");
+  const [showKey,  setShowKey]  = useState(false);
+  const [keyInput, setKeyInput] = useState("");
 
-  const generate=useCallback(async()=>{
-    setLoading(true); setText(""); setErr(false);
+  const day   = getDayOfCycle(profile.lastPeriodStart, profile.cycleLength);
+  const phase = getPhaseFromDay(day, profile);
+  const PD    = PHASES[phase];
+  const hasKey = apiKey.trim().startsWith("sk-ant-");
+
+  function saveKey() {
+    const k = keyInput.trim();
+    localStorage.setItem("cyclr_api_key", k);
+    setApiKey(k);
+    setShowKey(false);
+    setKeyInput("");
+  }
+
+  function clearKey() {
+    localStorage.removeItem("cyclr_api_key");
+    setApiKey("");
+  }
+
+  const generate = useCallback(async () => {
+    if (!hasKey) { setShowKey(true); return; }
+    setLoading(true); setText(""); setErr("");
     try {
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:280,
-          system:"You are a frank reproductive health advisor. Under 85 words. Start with one emoji. End with ✅ Safe or ⚠️ Caution.",
-          messages:[{role:"user",content:`Partner: ${profile.name}. Day ${day}/${profile.cycleLength} (${phase}). Symptoms: ${(profile.symptoms||[]).join(",")||"none"}. Sessions: ${(profile.intimacyLog||[]).length}. Period in ${daysUntil(getNextPeriod(profile.lastPeriodStart,profile.cycleLength))}d. Ovulation in ${daysUntil(getOvulation(profile.lastPeriodStart,profile))}d. Give insight.`}]})});
-      const d=await res.json(); setText(d.content?.[0]?.text||"Could not generate.");
-    } catch { setErr(true); setText("AI unavailable — check connection."); }
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 200,
+          system: "You are a reproductive health advisor for men tracking their partner's cycle. Under 70 words. Start with one emoji. End with ✅ Safe or ⚠️ Caution.",
+          messages: [{
+            role: "user",
+            content: `Partner: ${profile.name}. Day ${day}/${profile.cycleLength} (${phase}). Symptoms: ${(profile.symptoms||[]).join(",")||"none"}. Sessions this cycle: ${(profile.intimacyLog||[]).length}. Period in ${daysUntil(getNextPeriod(profile.lastPeriodStart,profile.cycleLength))}d. Ovulation in ${daysUntil(getOvulation(profile.lastPeriodStart,profile))}d. Give a brief, frank insight.`
+          }],
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        throw new Error(e?.error?.message || `API error ${res.status}`);
+      }
+      const d = await res.json();
+      setText(d.content?.[0]?.text || "No response.");
+    } catch (e) {
+      const msg = e.message || "";
+      if (msg.includes("401") || msg.includes("authentication")) {
+        setErr("Invalid API key. Tap the key icon to update it.");
+        clearKey();
+      } else if (msg.includes("403")) {
+        setErr("Access denied. Make sure your API key has the right permissions.");
+      } else {
+        setErr(`Error: ${msg || "Check your connection and try again."}`);
+      }
+    }
     setLoading(false);
-  },[profile,day,phase]);
+  }, [profile, day, phase, apiKey, hasKey]);
 
   return (
-    <div style={{background:T.surface2,border:`1px solid ${PD.color}28`,borderRadius:T.r.lg,padding:18,marginTop:4}}>
+    <div style={{background:T.surface2,border:`1px solid ${PD.color}22`,borderRadius:T.r.lg,padding:18,marginTop:4}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:26,height:26,borderRadius:7,background:PD.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✦</div>
+          <div style={{width:26,height:26,borderRadius:7,background:PD.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✦</div>
           <Lbl style={{marginBottom:0,color:PD.color}}>AI Insight</Lbl>
         </div>
-        <Btn onClick={generate} disabled={loading} color={PD.color} style={{padding:"6px 16px",fontSize:12}}>
-          {loading?<><Spin color="#fff"/>Thinking…</>:"Generate"}
-        </Btn>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {/* Key icon */}
+          <button onClick={()=>{setKeyInput(apiKey);setShowKey(true);}} className="pressable" title="Set API key" style={{
+            width:28,height:28,borderRadius:8,background:hasKey?"rgba(48,209,88,0.12)":"rgba(255,255,255,0.06)",
+            border:`1px solid ${hasKey?T.green+"40":T.border}`,color:hasKey?T.green:T.textMute,
+            fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+          }}>🔑</button>
+          <Btn onClick={generate} disabled={loading} color={PD.color} style={{padding:"6px 16px",fontSize:13}}>
+            {loading ? <><Spin color="#fff"/>Thinking…</> : hasKey ? "Generate" : "Setup →"}
+          </Btn>
+        </div>
       </div>
-      {text
-        ?<p style={{fontSize:14,color:err?"#ff7070":T.textSub,lineHeight:1.75,margin:0}}>{text}</p>
-        :<p style={{fontSize:13,color:T.textMute,margin:0,fontStyle:"italic",lineHeight:1.6}}>Generate a personalized AI insight for this cycle phase.</p>
+
+      {/* API key setup panel */}
+      {showKey && (
+        <div style={{background:T.surface,border:`1px solid ${T.accent}33`,borderRadius:T.r.md,padding:14,marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Anthropic API Key</div>
+          <div style={{fontSize:12,color:T.textMute,lineHeight:1.55,marginBottom:10}}>
+            Get a free key at <span style={{color:T.accent}}>console.anthropic.com</span> → API Keys. Your key stays on this device only.
+          </div>
+          <input
+            value={keyInput} onChange={e=>setKeyInput(e.target.value)}
+            placeholder="sk-ant-api03-..."
+            className="field"
+            type="password"
+            style={{marginBottom:10,fontSize:13,fontFamily:"monospace",background:"rgba(255,255,255,0.04)",border:`1px solid ${T.border}`,borderRadius:T.r.md,padding:"10px 13px",color:T.text,width:"100%",outline:"none"}}
+            onKeyDown={e=>e.key==="Enter"&&saveKey()}
+          />
+          <div style={{display:"flex",gap:8}}>
+            <Btn variant="ghost" onClick={()=>setShowKey(false)} style={{flex:1,padding:"9px"}}>Cancel</Btn>
+            <Btn onClick={saveKey} disabled={!keyInput.trim().startsWith("sk-ant-")} style={{flex:2,padding:"9px"}}>Save Key</Btn>
+          </div>
+          {hasKey && (
+            <button onClick={clearKey} className="pressable" style={{background:"none",border:"none",color:T.red,fontSize:12,cursor:"pointer",marginTop:8,padding:0}}>
+              Remove saved key
+            </button>
+          )}
+        </div>
+      )}
+
+      {err
+        ? <p style={{fontSize:13,color:T.red,lineHeight:1.7,margin:0}}>{err}</p>
+        : text
+          ? <p style={{fontSize:14,color:T.textSub,lineHeight:1.75,margin:0}}>{text}</p>
+          : <p style={{fontSize:13,color:T.textMute,margin:0,lineHeight:1.6}}>
+              {hasKey
+                ? "Tap Generate for an AI-powered cycle insight."
+                : "Tap Setup to add your Anthropic API key and unlock AI insights."}
+            </p>
       }
     </div>
   );
@@ -440,7 +608,7 @@ function SliderRow({ label, emoji, color, value, min, max, onChange, note }) {
     <div style={{marginBottom:22}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
         <span style={{fontSize:14,fontWeight:800,color}}>{emoji} {label}</span>
-        <span style={{fontSize:22,fontWeight:800,color,fontFamily:T.fontDisp,lineHeight:1}}>
+        <span style={{fontSize:22,fontWeight:400,color,fontFamily:T.fontDisp,lineHeight:1}}>
           {value}<span style={{fontSize:13,fontWeight:600,color:T.textMute}}> days</span>
         </span>
       </div>
@@ -766,7 +934,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
             <div style={{display:"flex",gap:14,alignItems:"center",marginBottom:18}}>
               <div style={{width:68,height:68,borderRadius:20,background:`linear-gradient(135deg,${PD.color}33,${PD.color}11)`,border:`2px solid ${PD.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>{profile.avatar}</div>
               <div style={{flex:1,minWidth:0}}>
-                <h2 style={{fontFamily:T.fontDisp,fontSize:22,fontWeight:700,margin:"0 0 5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</h2>
+                <h2 style={{fontFamily:T.fontDisp,fontSize:22,fontWeight:400,margin:"0 0 5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</h2>
                 <div style={{display:"inline-flex",alignItems:"center",gap:6,background:PD.color+"1a",borderRadius:T.r.pill,padding:"4px 12px",border:`1px solid ${PD.color}30`}}>
                   <span style={{fontSize:12}}>{PD.emoji}</span>
                   <span style={{fontSize:13,color:PD.color,fontWeight:700}}>{PD.label} · Day {day} of {profile.cycleLength}</span>
@@ -812,7 +980,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
               ].map((s,i)=>(
                 <div key={s.label} className={`fade-up-${i+1}`} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:T.r.lg,padding:"15px 17px"}}>
                   <Lbl style={{color:s.color+"88"}}>{s.label}</Lbl>
-                  <div style={{fontSize:20,fontWeight:800,color:s.color,fontFamily:T.fontDisp,marginBottom:3,lineHeight:1}}>{s.val}</div>
+                  <div style={{fontSize:20,fontWeight:400,color:s.color,fontFamily:T.fontDisp,marginBottom:3,lineHeight:1}}>{s.val}</div>
                   <div style={{fontSize:12,color:T.textMute}}>{s.sub}</div>
                 </div>
               ))}
@@ -839,7 +1007,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                 {SYMPTOMS.map(s=>{
                   const on=(profile.symptoms||[]).includes(s);
                   return (
-                    <button key={s} onClick={()=>toggleSym(s)} className="sym-tag" style={{
+                    <button key={s} onClick={()=>toggleSym(s)} className="sym" style={{
                       background:on?PD.color+"22":"rgba(255,255,255,0.05)",
                       border:`1px solid ${on?PD.color+"55":T.border}`,
                       borderRadius:T.r.pill,padding:"6px 13px",
@@ -902,7 +1070,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                     <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
                       <div>
                         <span style={{fontSize:13,color:T.text,fontWeight:600}}>💕 {fmtDate(d)}</span>
-                        <span style={{background:col+"1a",border:`1px solid ${col}30`,borderRadius:T.r.pill,padding:"2px 9px",fontSize:10,color:col,marginLeft:8}}>{PHASES[ph].label} · Day {cd}</span>
+                        <span style={{background:col+"1a",border:`1px solid ${col}30`,borderRadius:T.r.pill,padding:"2px 9px",fontSize:12,color:col,marginLeft:8}}>{PHASES[ph].label} · Day {cd}</span>
                       </div>
                       <button onClick={()=>removeIntimacy(d)} className="pressable" style={{background:"none",border:"none",color:T.textMute,cursor:"pointer",fontSize:18,lineHeight:1,padding:"3px 7px"}}>×</button>
                     </div>
@@ -930,7 +1098,7 @@ function ProfileDetail({ profile, onUpdate, onBack, onDelete }) {
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{width:44,height:44,borderRadius:14,background:val.color+"1a",border:`1px solid ${val.color}28`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{val.emoji}</div>
                       <div>
-                        <div style={{fontSize:15,fontWeight:800,color:val.color,fontFamily:T.fontDisp}}>{val.label}</div>
+                        <div style={{fontSize:15,fontWeight:400,color:val.color,fontFamily:T.fontDisp}}>{val.label}</div>
                         <div style={{fontSize:11,color:T.textMute}}>Day {liveDays[0]}–{liveDays[1]} · {Math.max(0,liveDays[1]-liveDays[0]+1)}d</div>
                       </div>
                     </div>
@@ -1089,7 +1257,7 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
 
   function tryDecode(val) {
     setCodeStr(val);
-    if (!val.trim()) { setDecoded(null); setCodeErr(false); return; }
+    if (!val.trim() || val.trim().length < 8) { setDecoded(null); setCodeErr(false); return; }
     const result = decodePartnerCode(val.trim());
     if (result) { setDecoded(result); setCodeErr(false); }
     else        { setDecoded(null);   setCodeErr(true);  }
@@ -1171,23 +1339,26 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
           <div className="fade-up">
             <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.xl,padding:24,marginBottom:14,boxShadow:T.shadow}}>
 
-              <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:6}}>📥 Paste Partner Code</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:6}}>📥 Paste Cycle Data</div>
               <div style={{fontSize:13,color:T.textMute,lineHeight:1.6,marginBottom:16}}>
-                Paste a code generated by Cyclr or exported from any period tracking app. All data will be imported instantly.
+                Paste a Cyclr partner code, a JSON export from Flo/Clue/Natural Cycles, or any text containing a date and cycle length.
               </div>
 
               <textarea
                 value={codeStr}
                 onChange={e=>tryDecode(e.target.value)}
-                placeholder="Paste code here — starts with CYC- or paste raw data…"
+                placeholder="Paste here — CYC- code, JSON export, or any text with a cycle date…"
                 className="field"
                 style={{...inputStyle,minHeight:100,resize:"vertical",fontSize:13,fontFamily:"monospace",marginBottom:0}}
               />
 
-              {/* Error state */}
+              {/* Error state — more helpful */}
               {codeErr&&(
-                <div style={{marginTop:10,padding:"10px 14px",background:"rgba(224,85,85,0.12)",border:"1px solid rgba(224,85,85,0.3)",borderRadius:T.r.md,fontSize:13,color:"#ff7070"}}>
-                  ⚠️ Invalid code — make sure you copied the full code including the CYC- prefix.
+                <div style={{marginTop:10,padding:"12px 14px",background:"rgba(255,69,58,0.08)",border:`1px solid ${T.red}30`,borderRadius:T.r.md}}>
+                  <div style={{fontSize:13,color:T.red,marginBottom:6,fontWeight:600}}>⚠️ Couldn't read that format</div>
+                  <div style={{fontSize:12,color:T.textMute,lineHeight:1.6}}>
+                    Cyclr can read: <b style={{color:T.textSub}}>CYC- codes</b>, <b style={{color:T.textSub}}>JSON exports</b>, or text containing a <b style={{color:T.textSub}}>date (2024-03-15)</b> and cycle info. Try copying just the data section from your app's export.
+                  </div>
                 </div>
               )}
 
@@ -1211,10 +1382,10 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
                       return (
                         <div style={{display:"flex",borderRadius:6,overflow:"hidden",height:10,gap:2}}>
                           {[
-                            {key:"menstruation",days:b.menstruation,color:"#e84393"},
-                            {key:"follicular",  days:b.follicular,  color:"#f5a623"},
-                            {key:"ovulation",   days:b.ovulation,   color:"#4caf7a"},
-                            {key:"luteal",      days:b.luteal,      color:"#9b59b6"},
+                            {key:"menstruation",days:b.menstruation,color:PHASES.menstruation.color},
+                            {key:"follicular",  days:b.follicular,  color:PHASES.follicular.color},
+                            {key:"ovulation",   days:b.ovulation,   color:PHASES.ovulation.color},
+                            {key:"luteal",      days:b.luteal,      color:PHASES.luteal.color},
                           ].map(s=>{
                             const len = Math.max(0, s.days[1]-s.days[0]+1);
                             if(len===0) return null;
@@ -1291,13 +1462,13 @@ function AddProfile({ onAdd, onBack, startTab="manual" }) {
             {/* How it works info box */}
             {!decoded&&!codeErr&&(
               <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r.lg,padding:18,boxShadow:T.shadow}}>
-                <div style={{fontSize:13,fontWeight:800,color:T.text,marginBottom:12}}>💡 How to get a code</div>
+                <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:12}}>💡 What you can paste</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {[
-                    {step:"1", text:"Open any period tracking app (Flo, Clue, Natural Cycles, etc.)"},
-                    {step:"2", text:"Go to the data export or share feature"},
-                    {step:"3", text:"If using Cyclr — open any profile → tap 📤 Share → Copy Code"},
-                    {step:"4", text:"Paste the code above and your partner's data imports instantly"},
+                    {step:"A", text:"A CYC- code from Cyclr — open any profile → ⋯ → Share Partner Code"},
+                    {step:"B", text:"A JSON data export from Flo, Clue, or Natural Cycles (Settings → Export data)"},
+                    {step:"C", text:"Any text that contains a date like 2024-03-15 — Cyclr will extract what it can"},
+                    {step:"D", text:"After importing, go to the Edit tab to fine-tune phase boundaries"},
                   ].map(s=>(
                     <div key={s.step} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                       <div style={{width:24,height:24,borderRadius:"50%",background:T.accent+"22",border:`1px solid ${T.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:T.accent,flexShrink:0}}>{s.step}</div>
@@ -1349,14 +1520,14 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
         {active.length>0&&(
           <div className="fade-up-1" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
             {[
-              {label:"Profiles",  val:active.length, color:T.accent, bg:PHASES.luteal.bg},
               {label:"Safe Now",  val:safeCt,         color:T.green,    bg:PHASES.ovulation.bg},
-              {label:"Ovulating", val:ovCt,           color:"#f5a623",  bg:PHASES.follicular.bg},
-              {label:"Sessions",  val:sessCt,         color:"#e84393",  bg:PHASES.menstruation.bg},
+              {label:"Ovulating", val:ovCt,           color:PHASES.follicular.color, bg:PHASES.follicular.bg},
+              {label:"Sessions",  val:sessCt,         color:PHASES.menstruation.color, bg:PHASES.menstruation.bg},
+              {label:"Profiles",  val:active.length, color:T.accent, bg:PHASES.luteal.bg},
             ].map(s=>(
               <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}20`,borderRadius:T.r.lg,padding:"12px 8px",textAlign:"center",boxShadow:T.shadow}}>
-                <div style={{fontSize:22,fontWeight:800,color:s.color,lineHeight:1,fontFamily:T.fontDisp}}>{s.val}</div>
-                <div style={{fontSize:10,color:T.textMute,marginTop:4,fontWeight:600}}>{s.label}</div>
+                <div style={{fontSize:22,fontWeight:400,color:s.color,lineHeight:1,fontFamily:T.fontDisp}}>{s.val}</div>
+                <div style={{fontSize:12,color:T.textMute,marginTop:4,fontWeight:600}}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -1397,10 +1568,10 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
               const accent=PD.color;
               const b=getPhaseBounds(profile);
               const segs=[
-                {key:"menstruation",days:b.menstruation,color:"#e84393"},
-                {key:"follicular",  days:b.follicular,  color:"#f5a623"},
-                {key:"ovulation",   days:b.ovulation,   color:"#4caf7a"},
-                {key:"luteal",      days:b.luteal,      color:"#9b59b6"},
+                {key:"menstruation",days:b.menstruation,color:PHASES.menstruation.color},
+                {key:"follicular",  days:b.follicular,  color:PHASES.follicular.color},
+                {key:"ovulation",   days:b.ovulation,   color:PHASES.ovulation.color},
+                {key:"luteal",      days:b.luteal,      color:PHASES.luteal.color},
               ];
               return (
                 <div key={profile.id} className={`card-lift fade-up-${Math.min(idx+1,3)}`} onClick={()=>onSelect(profile)}
@@ -1410,7 +1581,7 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
                     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
                       <div style={{width:52,height:52,borderRadius:16,background:accent+"25",border:`2px solid ${accent}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:17,fontWeight:800,fontFamily:T.fontDisp,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{profile.name}</div>
+                        <div style={{fontSize:17,fontWeight:400,fontFamily:T.fontDisp,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{profile.name}</div>
                         <div style={{display:"inline-flex",alignItems:"center",gap:5,background:PD.color+"1a",borderRadius:T.r.pill,padding:"3px 10px",border:`1px solid ${PD.color}25`}}>
                           <span style={{fontSize:10}}>{PD.emoji}</span>
                           <span style={{fontSize:11,color:PD.color,fontWeight:700}}>{PD.label} · Day {day}</span>
@@ -1435,15 +1606,15 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
                         {label:"Sessions",  val:(profile.intimacyLog||[]).length,          color:T.accent,bg:PHASES.luteal.bg},
                       ].map(s=>(
                         <div key={s.label} style={{background:s.bg,borderRadius:T.r.md,padding:"9px 10px"}}>
-                          <div style={{fontSize:15,fontWeight:800,color:s.color,fontFamily:T.fontDisp,lineHeight:1}}>{s.val}</div>
-                          <div style={{fontSize:10,color:T.textMute,marginTop:3}}>{s.label}</div>
+                          <div style={{fontSize:15,fontWeight:400,color:s.color,fontFamily:T.fontDisp,lineHeight:1}}>{s.val}</div>
+                          <div style={{fontSize:12,color:T.textMute,marginTop:3}}>{s.label}</div>
                         </div>
                       ))}
                     </div>
                     {(profile.symptoms||[]).length>0&&(
                       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                         {(profile.symptoms||[]).slice(0,4).map(s=>(
-                          <span key={s} style={{background:PD.color+"18",border:`1px solid ${PD.color}25`,borderRadius:T.r.pill,padding:"3px 10px",fontSize:10,color:PD.color}}>{s}</span>
+                          <span key={s} style={{background:PD.color+"18",border:`1px solid ${PD.color}25`,borderRadius:T.r.pill,padding:"3px 10px",fontSize:12,color:PD.color}}>{s}</span>
                         ))}
                         {(profile.symptoms||[]).length>4&&<span style={{fontSize:11,color:T.textMute,alignSelf:"center"}}>+{(profile.symptoms||[]).length-4}</span>}
                       </div>
@@ -1460,8 +1631,8 @@ function Dashboard({ user, profiles, onSelect, onAdd, onImport, onLogout }) {
       <button onClick={onAdd} className="pressable" style={{
         position:"fixed",bottom:28,right:24,
         width:58,height:58,borderRadius:"50%",
-        background:"#111",border:"none",
-        boxShadow:"0 6px 24px rgba(0,0,0,0.6)",
+        background:T.accent,border:"none",
+        boxShadow:`0 6px 28px ${T.accent}55`,
         fontSize:26,cursor:"pointer",zIndex:200,
         display:"flex",alignItems:"center",justifyContent:"center",
       }}>+</button>
@@ -1518,10 +1689,6 @@ function Login({ onLogin }) {
 
   return (
     <div style={{minHeight:"100vh",background:T.page,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fontUI,position:"relative",padding:20}}>
-      {/* Extra blobs */}
-      <div style={{position:"absolute",top:"8%",right:"-6%",width:240,height:240,borderRadius:"60% 40% 55% 45%",background:T.accent+"15",pointerEvents:"none",animation:"floatBlob 16s ease-in-out infinite"}}/>
-      <div style={{position:"absolute",bottom:"12%",left:"-8%",width:200,height:200,borderRadius:"50%",background:"#e84393"+"12",pointerEvents:"none",animation:"floatBlob 21s ease-in-out infinite 4s"}}/>
-
       {/* ── LOGIN CARD — DD centered modal on grey bg ── */}
       <div className="scale-in" style={{position:"relative",zIndex:2,width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
